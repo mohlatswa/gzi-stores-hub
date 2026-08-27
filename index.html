@@ -1,0 +1,1644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GZI SA — Technical Stores Hub</title>
+<style>
+  :root{
+    --bg:#f4f6f9; --panel:#ffffff; --ink:#1c2733; --muted:#63738a; --line:#e2e8f0;
+    --brand:#0f4c81; --brand-ink:#ffffff; --accent:#12805c; --warn:#b7791f; --danger:#c0392b;
+    --chip:#eef2f7; --hover:#f0f5fb; --shadow:0 1px 3px rgba(15,30,50,.08),0 6px 20px rgba(15,30,50,.06);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0f151c; --panel:#161e28; --ink:#e7edf4; --muted:#93a2b5; --line:#26313f;
+      --brand:#2f7fbf; --brand-ink:#ffffff; --accent:#2fae83; --warn:#d9a441; --danger:#e05b4b;
+      --chip:#1e2833; --hover:#1b2530; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font:14px/1.45 "Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:var(--brand)}
+  header.top{
+    background:var(--brand);color:var(--brand-ink);padding:10px 16px;display:flex;align-items:center;gap:14px;
+    position:sticky;top:0;z-index:40;flex-wrap:wrap
+  }
+  header.top h1{font-size:16px;margin:0;font-weight:650;letter-spacing:.2px;white-space:nowrap}
+  header.top .sub{font-size:11px;opacity:.8;margin-left:-8px}
+  header.top .spacer{flex:1}
+  header.top select,header.top button{font:inherit}
+  .globalArea{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);padding:4px 8px;border-radius:8px}
+  .globalArea select{background:transparent;color:var(--brand-ink);border:0;outline:none}
+  .globalArea select option{color:#000}
+  .headbtn{background:rgba(255,255,255,.14);color:var(--brand-ink);border:1px solid rgba(255,255,255,.25);
+    padding:6px 10px;border-radius:8px;cursor:pointer}
+  .headbtn:hover{background:rgba(255,255,255,.24)}
+  .layout{display:flex;min-height:calc(100vh - 52px)}
+  nav.side{width:210px;background:var(--panel);border-right:1px solid var(--line);padding:10px 8px;flex-shrink:0}
+  nav.side .grp{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:12px 8px 4px}
+  nav.side button{
+    display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:transparent;border:0;color:var(--ink);
+    padding:8px 10px;border-radius:8px;cursor:pointer;font:inherit
+  }
+  nav.side button .ic{width:18px;text-align:center;opacity:.85}
+  nav.side button:hover{background:var(--hover)}
+  nav.side button.active{background:var(--brand);color:var(--brand-ink)}
+  nav.side button .badge{margin-left:auto;background:var(--chip);color:var(--muted);border-radius:10px;padding:0 6px;font-size:11px}
+  nav.side button.active .badge{background:rgba(255,255,255,.25);color:#fff}
+  main{flex:1;padding:18px;min-width:0}
+  .page-h{display:flex;align-items:baseline;gap:10px;margin:0 0 4px}
+  .page-h h2{margin:0;font-size:20px}
+  .page-h p{margin:0;color:var(--muted);font-size:12.5px}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0}
+  .toolbar input[type=search],.toolbar select{
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 10px;color:var(--ink);font:inherit
+  }
+  .toolbar input[type=search]{min-width:220px}
+  .btn{background:var(--brand);color:var(--brand-ink);border:0;border-radius:8px;padding:8px 12px;cursor:pointer;font:inherit;font-weight:600}
+  .btn:hover{filter:brightness(1.07)}
+  .btn.sec{background:var(--chip);color:var(--ink)}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+  .btn.sm{padding:5px 9px;font-size:12px;font-weight:600}
+  .btn.danger{background:var(--danger)}
+  .count{color:var(--muted);font-size:12px;margin-left:auto}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+  .tablewrap{overflow:auto;max-width:100%}
+  table.grid{border-collapse:collapse;width:100%;font-size:13px}
+  table.grid th,table.grid td{border-bottom:1px solid var(--line);padding:7px 10px;text-align:left;white-space:nowrap;vertical-align:top}
+  table.grid th{background:var(--panel);position:sticky;top:0;cursor:pointer;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+  table.grid tbody tr:hover{background:var(--hover);cursor:pointer}
+  table.grid td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.3px}
+  .pill.ok{background:rgba(18,128,92,.14);color:var(--accent)}
+  .pill.warn{background:rgba(183,121,31,.16);color:var(--warn)}
+  .pill.bad{background:rgba(192,57,43,.14);color:var(--danger)}
+  .pill.mut{background:var(--chip);color:var(--muted)}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin:6px 0 18px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:var(--shadow)}
+  .kpi .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+  .kpi .val{font-size:24px;font-weight:700;margin-top:4px}
+  .kpi .hint{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .kpi.click{cursor:pointer}
+  .kpi.click:hover{border-color:var(--brand)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:900px){.grid2{grid-template-columns:1fr}}
+  .sechead{font-size:13px;font-weight:700;margin:18px 0 8px;display:flex;align-items:center;gap:8px}
+  .bar{height:10px;background:var(--chip);border-radius:6px;overflow:hidden}
+  .bar > i{display:block;height:100%;background:var(--brand)}
+  /* modal */
+  .modal-back{position:fixed;inset:0;background:rgba(10,18,28,.5);display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;z-index:80;overflow:auto}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);width:min(880px,100%);}
+  .modal h3{margin:0;padding:16px 18px;border-bottom:1px solid var(--line);font-size:16px}
+  .modal .body{padding:16px 18px;max-height:64vh;overflow:auto}
+  .modal .foot{padding:14px 18px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center}
+  .formgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px}
+  @media(max-width:700px){.formgrid{grid-template-columns:1fr}}
+  .fld{display:flex;flex-direction:column;gap:4px}
+  .fld.wide{grid-column:1/-1}
+  .fld label{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+  .fld input,.fld select,.fld textarea{
+    background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--ink);font:inherit;width:100%
+  }
+  .fld textarea{min-height:60px;resize:vertical}
+  .fld .ro{background:var(--chip);color:var(--muted)}
+  .hintline{font-size:11px;color:var(--muted)}
+  .subgrid{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
+  .subgrid th,.subgrid td{border:1px solid var(--line);padding:4px 6px}
+  .subgrid th{background:var(--chip);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
+  .subgrid input,.subgrid select{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 6px;color:var(--ink);font:inherit}
+  .subgrid input.num{text-align:right}
+  .rowdel{color:var(--danger);cursor:pointer;font-weight:700;border:0;background:transparent}
+  .empty{padding:40px;text-align:center;color:var(--muted)}
+  .tag{background:var(--chip);color:var(--muted);border-radius:6px;padding:1px 6px;font-size:11px}
+  .flex{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .right{margin-left:auto}
+  .mini{font-size:11.5px;color:var(--muted)}
+  .syncdot{font-size:12px;line-height:1;color:#9aa7b6;transition:color .2s}
+  .syncdot.ok{color:#31c48d}.syncdot.busy{color:#e0b341}.syncdot.err{color:#e05b4b}
+  .login-back{position:fixed;inset:0;z-index:200;background:linear-gradient(160deg,#0f4c81,#0b2a47);display:flex;align-items:center;justify-content:center;padding:20px}
+  .login-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.35);width:min(360px,100%);padding:26px 24px}
+  .login-card h2{margin:0 0 2px;font-size:17px}
+  .login-card label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-top:14px}
+  .login-card input{width:100%;margin-top:5px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;color:var(--ink);font:inherit}
+  .login-card .btn{width:100%;margin-top:18px;padding:10px}
+  .lg-err{color:var(--danger);font-size:12.5px;min-height:16px;margin-top:8px}
+  body.authed #loginGate{display:none}
+  /* print */
+  #printArea{display:none}
+  @media print{
+    header.top,nav.side,.toolbar,.no-print{display:none !important}
+    body,main{background:#fff}
+    .layout{display:block}
+    main{padding:0}
+    #app{display:none !important}
+    #printArea{display:block !important}
+    #printArea *{color:#000 !important}
+    #printArea table{border-collapse:collapse;width:100%;font-size:11px}
+    #printArea th,#printArea td{border:1px solid #999;padding:4px 6px;text-align:left}
+    #printArea h2{margin:0 0 2px}
+    #printArea .ph{display:flex;justify-content:space-between;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:10px}
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>GZI SA · Technical Stores Hub</h1>
+  <span class="sub">Wadeville · Plant 6000</span>
+  <div class="globalArea" title="Filters the whole program by storage area">
+    <span style="font-size:11px;opacity:.8">AREA</span>
+    <select id="globalArea"><option value="">All areas</option></select>
+  </div>
+  <span class="spacer"></span>
+  <span id="syncDot" class="syncdot" title="Sync status">●</span>
+  <button class="headbtn" id="btnRefresh" title="Reload latest data from the server">↻ Refresh</button>
+  <button class="headbtn" id="btnBackup">Backup / Restore</button>
+  <button class="headbtn" id="btnSeed">Load sample data</button>
+  <button class="headbtn" id="btnLogout">Log out</button>
+</header>
+
+<div class="layout">
+  <nav class="side" id="nav"></nav>
+  <main id="app"></main>
+</div>
+
+<div id="printArea"></div>
+<div id="modalRoot"></div>
+
+<div id="loginGate" class="login-back">
+  <form class="login-card" id="loginForm">
+    <h2>GZI&nbsp;SA · Technical Stores Hub</h2>
+    <p class="mini">Sign in to the shared stores database.</p>
+    <label>Username<input id="lg_user" autocomplete="username" autofocus></label>
+    <label>Password<input id="lg_pass" type="password" autocomplete="current-password"></label>
+    <div id="lg_err" class="lg-err"></div>
+    <button class="btn" type="submit">Sign in</button>
+    <p class="mini" style="margin-top:10px">Online system — needs a connection. Data is shared by everyone who signs in.</p>
+  </form>
+</div>
+
+<script>
+"use strict";
+/* ============================================================ *
+ *  GZI SA — Technical Stores Hub
+ *  Online multi-user inventory control. Shared Supabase database.
+ * ============================================================ */
+
+const TODAY = () => new Date().toISOString().slice(0,10);
+const uid = () => Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-4);
+const num = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+const money = v => (num(v)).toLocaleString("en-ZA",{style:"currency",currency:"ZAR",minimumFractionDigits:2});
+const int = v => (num(v)).toLocaleString("en-ZA");
+const esc = s => String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const daysBetween = (a,b) => { if(!a) return ""; const d1=new Date(a), d2=b?new Date(b):new Date(); return Math.max(0,Math.round((d2-d1)/86400000)); };
+const monthOf = d => d ? new Date(d).toLocaleDateString("en-ZA",{month:"short",year:"numeric"}) : "";
+const weekOf = d => { if(!d) return ""; const dt=new Date(d); const on=new Date(dt.getFullYear(),0,1); const w=Math.ceil((((dt-on)/86400000)+on.getDay()+1)/7); return "Wk "+w; };
+
+/* ---------- reference lists ---------- */
+const UOMS = ["PC","EA","M","L","KG","SET","PAC","ROLL","BOX","PAIR","BT","PK","TH","FT"];
+const GROUPS = ["SP01 - Electrical","SP02 - Mechanical","SP03 - Other Spares"];
+const SHIFTS = ["A","B","C","D","Day","Night","A - Day","A - Night","B - Day","B - Night","C - Day","C - Night","D - Day","D - Night"];
+const MOVE_TYPES = ["Issue","Reverse Issue","Inventory Receipt","Reverse-PO","Inter-Branch Transfer","Inbound Transfer","Outbound Transfer","Adjustment","Return","Scrap","Other"];
+const STOCK_STATUS = ["Active spare","Non Mover","No movement","Obsolete","Use Up"];
+
+/* ---------- default (sample) data derived from the source trackers ---------- */
+function seedData(){
+  const branches = [
+    {id:uid(),code:"6000",name:"GZI SA",location:"Wadeville, South Africa",remarks:"Home plant"},
+    {id:uid(),code:"1000",name:"GZI AGBARA",location:"Agbara, Nigeria",remarks:""},
+    {id:uid(),code:"1001",name:"GZI ABA",location:"Aba, Nigeria",remarks:""},
+    {id:uid(),code:"KEN",name:"GZI KENYA",location:"Kenya",remarks:""},
+  ];
+  const machines = [
+    ["BA","Bailer"],["BM","Bodymaker"],["BR","BRC"],["CP","Cupper"],["CV","Conveyor"],
+    ["DC","Decorator"],["DI","Deionizer"],["EG","Electrical General"],["FP","Full Palletizer"],
+    ["GM","General Mechanical"],["IB","IBO"],["IS","Inside Spray"],["ID","ID Spares"],
+    ["NE","Necker"],["PS","Presco"],["TR","Trimmer"],["WA","Washer"],["CO","Cooling Tower"],
+    ["LSM","LSM"],["PN","Pin Oven"],["SW","Stretch Wrapper"],["AC","Air Compressor"],["ADM","Admin/Consumables"]
+  ].map(([c,n])=>({id:uid(),code:c,name:n,area:n+" Store",remarks:""}));
+  const areas = [
+    ["Bailer Store","MS.BA","Mechanical Store"],["Bodymaker Store","MS.BM","Mechanical Store"],
+    ["Decorator Store","MS.DC","Mechanical Store"],["Cupper Store","MS.CP","Mechanical Store"],
+    ["Necker Store","MS.NE","Mechanical Store"],["Washer Store","MS.WA","Mechanical Store"],
+    ["Trimmer Store","MS.TR","Mechanical Store"],["Palletiser Store","MS.FP","Mechanical Store"],
+    ["Conveyor Store","MS.CV","Mechanical Store"],["BRC Store","MS.BR","Mechanical Store"],
+    ["IBO Store","MS.IB","Mechanical Store"],["Inside Spray Store","MS.IS","Mechanical Store"],
+    ["Electrical Store","ES.GE","Electrical Store"],["ID Spares","MS.ID","Other"],
+    ["General Mechanical","MS.GM","Mechanical Store"],["Hose Store","HOSE","Other"],
+    ["Oil Store","OIL","Consumables"],["Consumables","CONS","Consumables"]
+  ].map(([n,s,t])=>({id:uid(),name:n,storeCode:s,type:t,custodian:"",remarks:""}));
+  const staff = [
+    ["Sizwe Ndlovu","Storeman"],["Erasmus Nchabeleng","Storeman"],["Kusaselihle Mashiyane","Storeman"],
+    ["Robert Mathebula","Storeman"],["Thandazile Ratau","Store Controller"],["Philisiwe Matyobo","Store Controller"],
+    ["Vusumuzi Mkansi","Master Data / Procurement"],["Prince","Storeman"],["Zuko","Storeman"],["Teboho","Storeman"]
+  ].map(([n,r])=>({id:uid(),name:n,role:r,shift:"Day",remarks:""}));
+
+  const bins = [
+    ["MS.BA.1.1.2.07","MS.BA","Bailer Store"],["MS.BA.11105","MS.BA","Bailer Store"],
+    ["MS.BA.11107","MS.BA","Bailer Store"],["MS.BA.11102","MS.BA","Bailer Store"],
+    ["MS.BA.11306","MS.BA","Bailer Store"],["MS.BA.11503","MS.BA","Bailer Store"],
+    ["ES.GE.36133","ES.GE","Electrical Store"],["ES.GE.36132","ES.GE","Electrical Store"],
+    ["MS.DC.23124","MS.DC","Decorator Store"],["MS.DC.13404","MS.DC","Decorator Store"],
+    ["MS.DC.22415","MS.DC","Decorator Store"],["MS.DC.14301","MS.DC","Decorator Store"],
+    ["Hose store","HOSE","Hose Store"],["Oil store","OIL","Oil Store"],["No Location","","Consumables"]
+  ].map(([c,s,a])=>({id:uid(),code:c,store:s,area:a,zone:"",rack:"",shelf:"",position:"",capacity:0,status:c==="No Location"?"Empty":"Active",remarks:""}));
+
+  const inv = [
+    ["BA-000001","FILTER ELEMENT FOR PI0153","03-0025","Bailer","Bailer Store","MS.BA.1.1.2.07","SP02 - Mechanical","PC",1,2,2,3117.62,"Active spare"],
+    ["BA-000002","SET OF GASKET FOR CYLINDER","22-85-6-0016","Bailer","Bailer Store","MS.BA.11105","SP02 - Mechanical","PC",1,1,1,6751.66,"Non Mover"],
+    ["BA-000012","FILTER ELEMENT 25MIC","03-0010","Bailer","Bailer Store","MS.BA.11306","SP02 - Mechanical","PC",1,2,2,9521.84,"Active spare"],
+    ["BA-000024","LIGHT SENSOR TELCO-EMITTER","04-0321","Bailer","Electrical Store","ES.GE.36133","SP01 - Electrical","PC",2,2,2,1240.00,"Active spare"],
+    ["BA-000027","PROXIMITY SWITCH M30","M30-04-0318","Bailer","Electrical Store","ES.GE.36132","SP01 - Electrical","PC",1,3,3,980.00,"Active spare"],
+    ["BA-000049","HD-HOSE NW 25-1SN L700","90-97-5-0069","Bailer","Hose Store","Hose store","SP02 - Mechanical","PC",1,1,1,540.00,"Active spare"],
+    ["BM-000005","O RING,0355-30 METRIC BS4","","Bodymaker","Bodymaker Store","No Location","SP02 - Mechanical","PC",0,0,0,42.00,"No movement"],
+    ["BM-000881","PROPORTIONAL VALVE","","Bodymaker","Bodymaker Store","No Location","SP02 - Mechanical","PC",0,1,1,17500.00,"Active spare"],
+    ["DC-000330","BLADE, SIDE SCRAPER BOTTOM","6CD6-34-199","Decorator","Decorator Store","MS.DC.23124","SP02 - Mechanical","PC",4,8,29,210.00,"Active spare"],
+    ["DC-000350","ROLLER-DUCTOR 3-11/16 DIA","CD2-90-34-1","Decorator","Decorator Store","MS.DC.14301","SP02 - Mechanical","PC",40,80,121,155.00,"Active spare"],
+    ["DC-000167","CUP BELLOWS (BLACK)","","Decorator","Decorator Store","MS.DC.13404","SP02 - Mechanical","PC",10,20,60,174.91,"Active spare"],
+    ["NE-000005","NUT,FULL,PLATED,5/8 UNF","","Necker","Necker Store","No Location","SP02 - Mechanical","PC",12,24,4,6.50,"Active spare"],
+    ["CP-000005","SW, PRESET 9.5HG VACUUM","","Cupper","Cupper Store","No Location","SP01 - Electrical","PC",0,0,0,1200.00,"No movement"],
+    ["WA-000409","JET NOZZLE","","Washer","Washer Store","No Location","SP02 - Mechanical","PC",5,10,8,290.20,"Active spare"],
+    ["ID-000002","LIGHT ORANGE INK DOT INK","","ID Spares","ID Spares","No Location","SP03 - Other Spares","L",2,6,3,1495.80,"Active spare"],
+    ["CV-000104","BELT VACUUM","","Conveyor","Conveyor Store","No Location","SP02 - Mechanical","M",1,2,2,12789.80,"Active spare"],
+    ["GM-LC000355","EMERY CLOTH P800A","","General Mechanical","Consumables","No Location","SP03 - Other Spares","PC",20,50,150,6.93,"Active spare"],
+    ["ADM-000001","A4 PAPER WHITE 210x297MM (500)","","Admin/Consumables","Consumables","No Location","SP03 - Other Spares","PC",10,20,48,95.00,"Active spare"],
+  ].map(r=>({
+    id:uid(), sapCode:r[0], description:r[1], description2:"", mpn:r[2], upn:"",
+    machine:r[3], area:r[4], branch:"GZI SA", sloc:"6080", group:r[6], itemGroup:"",
+    uom:r[7], bin:r[5], min:r[8], max:r[9], qty:r[10], unitCost:r[11],
+    status:r[12], remarks:"", updatedAt:TODAY()
+  }));
+
+  const interbranch = [
+    ["Body M","BM-000881","PROPORTIONAL VALVE","",1,17500,"GZI SA","GZI AGBARA","PO: 8000000061","Fully Processed","Doc# 4900221637"],
+    ["Decorator","DC-000167","CUP BELLOWS (BLACK)","",50,174.91,"GZI SA","GZI AGBARA","PO: 8000000060","Fully Processed","Doc# 4900220702"],
+    ["Washer","WA-000409","JET NOZZLE","",300,290.2,"GZI SA","GZI AGBARA","PO: 8000000062","Fully Processed","Doc# 4900220175"],
+    ["ID Spares","ID-000002","LIGHT ORANGE INK DOT INK","",32,1495.8,"GZI SA","GZI AGBARA","PO: 8000000063","Fully Processed","Doc# 4900220173"],
+    ["Decorator","DC-000353","FORM ROLLER (3-3/4'' DIA.)","",19,1749.36,"GZI SA","GZI ABA","PO: 8000000064","Fully Processed","Doc# 4900231990"],
+    ["Conveyor","CV-000104","BELT VACUUM","",80,12789.8,"GZI SA","GZI AGBARA","PO: 8000000071","Pending",""],
+    ["Necker","NE-000227","BEARING PIN","",15,1203.53,"GZI SA","GZI AGBARA","PO: 8000000071","Pending",""],
+  ].map((r,i)=>({
+    id:uid(), sn:i+1, week:weekOf(TODAY()), date:TODAY(), machine:r[0], sapCode:r[1], description:r[2],
+    partNo:r[3], qty:r[4], unitCost:r[5], fromPlant:r[6], toPlant:r[7], reqNo:"", shipDate:"",
+    prpo:r[8], status:r[9], docNo:r[10], remarks:""
+  }));
+
+  const daily = [
+    ["2025-06-25","Bin locations not updated for Bailer hydraulic spares","Housekeeping","Day","Thandazile Ratau","Philisiwe Matyobo","","Open","Awaiting bin survey"],
+    ["2026-08-10","SAP qty mismatch on DC-000330 after issue","Variance","A - Day","Erasmus Nchabeleng","Robert Mathebula","2026-08-15","Closed","Adjusted via IVF"],
+  ].map((r,i)=>({id:uid(),sn:i+1,openDate:r[0],description:r[1],reason:r[2],shift:r[3],raisedBy:r[4],assignedTo:r[5],closeDate:r[6],status:r[7],remarks:r[8]}));
+
+  const gatepass = [
+    ["00151","2026-03-24","Returnable","SN-4471","Torque wrench for calibration",1,"","Sent Out","T. Kgatle","V. Sibeko","",""],
+    ["00152","2026-03-24","Non-Returnable","","Scrap decorator rollers",12,"PR 44120","Non Returnable","T. Kgatle","V. Sibeko","",""],
+  ].map(r=>({id:uid(),gpNo:r[0],date:r[1],category:r[2],serialNo:r[3],description:r[4],qty:r[5],prNo:r[6],status:r[7],authBy:r[8],approvedBy:r[9],returnDate:r[10],remarks:r[11]}));
+
+  const gas = [
+    ["2026-08-20","PO 780012","CO2","Received Full","BT-0091",30,2,"Sizwe Ndlovu","Afrox","DN 55231",""],
+    ["2026-08-22","","CO2","Returned Empty","BT-0088",0,2,"Sizwe Ndlovu","Afrox","",""],
+  ].map(r=>({id:uid(),date:r[0],poNo:r[1],gasType:r[2],direction:r[3],bottleNo:r[4],bottleMass:r[5],qtyBottles:r[6],receivedBy:r[7],supplier:r[8],deliveryNote:r[9],remarks:r[10]}));
+
+  const mda = [{
+    id:uid(),date:TODAY(),action:"Add New Item into SAP",materialNo:"",desc1:"Sensolution 555 Toroidal Conductivity Sensor",desc2:"",
+    oemPart:"500/9103",upn:"",machine:"Washer",uom:"EA",group:"SP02 - Mechanical",itemGroup:"SP02 - Mechanical",
+    origin:"Local Supply",supplier:"ASTLES",leadTime:1,min:1,max:3,
+    requestor:"Tshepo Kgatle",superintendent:"Vincent Sibeko",hod:"Collen Ntsoane",mdaAdmin:"Vusumuzi Mkansi",
+    status:"Approved",remarks:""
+  }];
+
+  const ivfs = [{
+    id:uid(), date:"2026-08-27", verifiedBy:"Philisiwe Matyobo", shift:"A - Day", signature:"",
+    lines:[
+      {id:uid(),no:1,date:"2026-08-27",materialCode:"NE-000005",description:"NUT,FULL,PLATED,5/8 UNF",min:12,max:24,movementType:"Issue",location:"No Location",physical:4,sapQty:5,reorderQty:20,txnAudit:"Checked",remarks:""},
+      {id:uid(),no:2,date:"2026-08-27",materialCode:"BA-000001",description:"FILTER ELEMENT FOR PI0153",min:1,max:2,movementType:"",location:"MS.BA.1.1.2.07",physical:2,sapQty:2,reorderQty:0,txnAudit:"OK",remarks:""},
+      {id:uid(),no:3,date:"2026-08-27",materialCode:"DC-000330",description:"BLADE, SIDE SCRAPER BOTTOM",min:4,max:8,movementType:"",location:"MS.DC.23124",physical:27,sapQty:29,reorderQty:0,txnAudit:"Recount",remarks:"2 short"},
+    ]
+  }];
+
+  const counts = [{
+    id:uid(), countDate:"2026-06-19", weekNo:"Wk 25", month:"Jun 2026", counter:"Erasmus Nchabeleng", area:"Bailer Store", status:"Draft",
+    lines:[
+      {id:uid(),sapCode:"BA-000001",description:"FILTER ELEMENT FOR PI0153",partNo:"03-0025",uom:"PC",bin:"MS.BA.1.1.2.07",min:1,max:2,system:2,physical:2,movementStatus:"Active spare",counted:"Y",comments:""},
+      {id:uid(),sapCode:"BA-000012",description:"FILTER ELEMENT 25MIC",partNo:"03-0010",uom:"PC",bin:"MS.BA.11306",min:1,max:2,system:2,physical:2,movementStatus:"Active spare",counted:"Y",comments:""},
+    ]
+  }];
+
+  return {
+    branches, machines, areas, staff, bins, inventory:inv, interbranch,
+    daily, gatepass, gas, mda, ivfs, counts,
+    variances:[], movements:[], binCardOpening:{},
+    meta:{created:TODAY(), version:1}
+  };
+}
+
+/* ============================================================ *
+ *  ONLINE PERSISTENCE — Supabase REST (PostgREST)
+ *  Shared database. Each collection = table shb_<key> with shape
+ *  { id text pk, data jsonb, updated_at }. Rows are flattened to
+ *  plain objects in memory; writes are diffed against a shadow copy.
+ * ============================================================ */
+const SB = {
+  url: "https://grszkritprvlwjqmzgfa.supabase.co",
+  key: "sb_publishable_rVel3kRyAtyU9fkLaPR2vQ_rSCNLHJJ"
+};
+const COLLECTIONS = ["inventory","bins","movements","variances","interbranch","daily",
+  "gatepass","gas","mda","machines","areas","branches","staff","counts","ivfs"];
+const TB = k => "shb_" + k;
+
+async function sb(path, opts={}){
+  const { headers: extra, ...rest } = opts;
+  const res = await fetch(SB.url + "/rest/v1/" + path, Object.assign({}, rest, {
+    headers: Object.assign({
+      "apikey": SB.key,
+      "Authorization": "Bearer " + SB.key,
+      "Content-Type": "application/json"
+    }, extra || {})
+  }));
+  const body = await res.text();
+  if(!res.ok) throw new Error("Supabase " + res.status + ": " + body.slice(0,300));
+  return body ? JSON.parse(body) : null;
+}
+const stripId = r => { const o = Object.assign({}, r); delete o.id; return o; };
+const rowIn  = r => Object.assign({}, r.data, {id: r.id});
+const rowOut = r => ({ id: r.id, data: stripId(r), updated_at: new Date().toISOString() });
+
+async function sbList(k){
+  const rows = await sb(TB(k) + "?select=id,data&order=updated_at.asc");
+  return rows.map(rowIn);
+}
+async function sbUpsert(k, row){
+  await sb(TB(k), {
+    method: "POST",
+    headers: { "Prefer": "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify(rowOut(row))
+  });
+}
+async function sbUpsertMany(k, rows){
+  if(!rows.length) return;
+  for(let i=0;i<rows.length;i+=200){
+    await sb(TB(k), {
+      method: "POST",
+      headers: { "Prefer": "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify(rows.slice(i,i+200).map(rowOut))
+    });
+  }
+}
+async function sbDelete(k, id){
+  await sb(TB(k) + "?id=eq." + encodeURIComponent(id), { method: "DELETE", headers:{Prefer:"return=minimal"} });
+}
+async function sbDeleteMany(k, ids){
+  for(let i=0;i<ids.length;i+=100){
+    const list = ids.slice(i,i+100).map(id => '"' + String(id).replace(/"/g,'') + '"').join(",");
+    await sb(TB(k) + "?id=in.(" + encodeURIComponent(list) + ")", { method:"DELETE", headers:{Prefer:"return=minimal"} });
+  }
+}
+async function sbGetSetting(key){
+  const rows = await sb("shb_settings?select=data&id=eq." + encodeURIComponent(key));
+  return rows.length ? rows[0].data : null;
+}
+async function sbPutSetting(key, value){
+  await sb("shb_settings", {
+    method: "POST",
+    headers: { "Prefer": "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify({ id: key, data: value, updated_at: new Date().toISOString() })
+  });
+}
+
+let DB = blank();
+let SHADOW = blank();
+function blank(){
+  const o = { binCardOpening:{}, meta:{created:TODAY(), version:2} };
+  COLLECTIONS.forEach(k => o[k] = []);
+  return o;
+}
+function clone(x){ return JSON.parse(JSON.stringify(x)); }
+
+function setSync(state){
+  const d = document.getElementById("syncDot");
+  if(!d) return;
+  d.className = "syncdot " + (state||"");
+  d.title = state==="ok" ? "All changes saved" : state==="busy" ? "Saving…" : state==="err" ? "Save failed — check connection" : "";
+}
+
+/* Pull every collection into memory. */
+async function pullAll(){
+  setSync("busy");
+  const results = await Promise.all(COLLECTIONS.map(k => sbList(k)));
+  COLLECTIONS.forEach((k,i)=> DB[k] = results[i]);
+  DB.binCardOpening = (await sbGetSetting("binCardOpening")) || {};
+  SHADOW = clone(DB);
+  setSync("ok");
+}
+
+/* Diff current DB against SHADOW and push only what changed.
+   Existing call sites keep calling save() unchanged. */
+let saveChain = Promise.resolve();
+function save(){
+  saveChain = saveChain.then(doSave).catch(err=>{
+    console.error(err); setSync("err");
+    toast("Could not save to the server. Check your connection and try again.\n\n" + err.message);
+  });
+  return saveChain;
+}
+async function doSave(){
+  setSync("busy");
+  for(const k of COLLECTIONS){
+    const cur = DB[k] || [];
+    const prev = SHADOW[k] || [];
+    const prevMap = new Map(prev.map(r => [r.id, JSON.stringify(r)]));
+    const curIds = new Set(cur.map(r => r.id));
+    const changed = cur.filter(r => prevMap.get(r.id) !== JSON.stringify(r));
+    const removed = prev.filter(r => !curIds.has(r.id)).map(r => r.id);
+    if(changed.length) await sbUpsertMany(k, changed);
+    if(removed.length) await sbDeleteMany(k, removed);
+  }
+  if(JSON.stringify(DB.binCardOpening) !== JSON.stringify(SHADOW.binCardOpening)){
+    await sbPutSetting("binCardOpening", DB.binCardOpening || {});
+  }
+  SHADOW = clone(DB);
+  setSync("ok");
+}
+
+/* ---------- helpers over data ---------- */
+const staffNames = () => DB.staff.map(s=>s.name);
+const machineNames = () => DB.machines.map(m=>m.name);
+const areaNames = () => DB.areas.map(a=>a.name);
+const branchNames = () => DB.branches.map(b=>b.name);
+const binCodes = () => DB.bins.map(b=>b.code);
+const findItem = code => DB.inventory.find(i => (i.sapCode||"").toUpperCase() === String(code||"").toUpperCase());
+
+function applyStockDelta(sapCode, deltaIn, deltaOut){
+  const it = findItem(sapCode);
+  if(!it) return null;
+  it.qty = num(it.qty) + num(deltaIn) - num(deltaOut);
+  it.updatedAt = TODAY();
+  return it.qty;
+}
+
+/* ============================================================ *
+ *  COLLECTION SCHEMAS  (drives the generic table + form engine)
+ * ============================================================ */
+const F = (key,label,type,extra={}) => Object.assign({key,label,type},extra);
+
+const SCHEMAS = {
+  inventory:{
+    label:"Inventory (all areas)", icon:"📦", singular:"item", areaField:"area", print:false,
+    cols:[
+      F("sapCode","SAP Code","text",{req:true}),
+      F("description","Description","text",{req:true,grow:1}),
+      F("description2","Description 2","text"),
+      F("mpn","OEM Part No","text"),
+      F("upn","Universal Part No","text"),
+      F("machine","Machine / Equipment","select",{options:machineNames}),
+      F("area","Storage Area","select",{options:areaNames}),
+      F("branch","Branch / Plant","select",{options:branchNames}),
+      F("sloc","SLoc","text"),
+      F("group","Material Group","select",{options:()=>GROUPS}),
+      F("itemGroup","Item Group","text"),
+      F("uom","UOM","select",{options:()=>UOMS}),
+      F("bin","Bin Location","lookup",{options:binCodes}),
+      F("min","Min (Reorder Pt)","number"),
+      F("max","Max Level","number"),
+      F("qty","On Hand Qty","number"),
+      F("unitCost","Unit Cost","money"),
+      F("sohValue","SOH Value","computed",{compute:r=>num(r.qty)*num(r.unitCost),fmt:money,tableOnly:true}),
+      F("reorder","Re-order?","computed",{compute:r=>(num(r.qty)<=num(r.min) && (num(r.min)>0||num(r.max)>0))?"RE-ORDER":"OK",pill:v=>v==="RE-ORDER"?"bad":"ok",tableOnly:true}),
+      F("overMax","Over Max?","computed",{compute:r=>(num(r.max)>0 && num(r.qty)>num(r.max))?"OVER MAX":"",pill:v=>v?"warn":"mut",tableOnly:true}),
+      F("status","Movement Status","select",{options:()=>STOCK_STATUS}),
+      F("remarks","Remarks","textarea",{grow:1}),
+      F("updatedAt","Updated","text",{ro:true}),
+    ]
+  },
+  bins:{
+    label:"Bin Locations", icon:"🗄️", singular:"bin", areaField:"area",
+    cols:[
+      F("code","Bin Code","text",{req:true}),
+      F("store","Store Code","text"),
+      F("area","Area","select",{options:areaNames}),
+      F("zone","Zone","text"),F("rack","Rack","text"),F("shelf","Shelf","text"),F("position","Position","text"),
+      F("capacity","Capacity","number"),
+      F("status","Status","select",{options:()=>["Active","Empty","Damaged","Quarantine","Full"]}),
+      F("items","Items","computed",{compute:r=>DB.inventory.filter(i=>i.bin===r.code).length,tableOnly:true}),
+      F("onHand","On Hand","computed",{compute:r=>DB.inventory.filter(i=>i.bin===r.code).reduce((a,i)=>a+num(i.qty),0),tableOnly:true}),
+      F("remarks","Remarks","textarea",{grow:1}),
+    ]
+  },
+  movements:{
+    label:"Inventory Movement Tracker", icon:"🔁", singular:"movement", areaField:"area", posts:true,
+    cols:[
+      F("lineNo","Line","text",{ro:true}),
+      F("date","Date","date",{req:true}),
+      F("month","Month","computed",{compute:r=>monthOf(r.date),tableOnly:true}),
+      F("sapCode","SAP Code","lookup",{req:true,options:()=>DB.inventory.map(i=>i.sapCode)}),
+      F("description","Description","text"),
+      F("machine","Machine","select",{options:machineNames}),
+      F("area","Area","select",{options:areaNames}),
+      F("bin","Bin Location","lookup",{options:binCodes}),
+      F("type","Movement Type","select",{req:true,options:()=>MOVE_TYPES}),
+      F("qtyIn","Qty In","number"),
+      F("qtyOut","Qty Out","number"),
+      F("balance","Floor Balance (after)","number",{ro:true}),
+      F("balanceSap","SAP Balance","number"),
+      F("variance","Variance","computed",{compute:r=>num(r.balance)-num(r.balanceSap),pill:v=>v==0?"ok":"bad",tableOnly:true}),
+      F("docNo","Document No","text"),
+      F("onShift","On Shift (staff)","select",{options:staffNames}),
+      F("shift","Shift","select",{options:()=>SHIFTS}),
+      F("reason","Reason for transaction","text",{grow:1}),
+      F("remarks","Remarks","textarea"),
+    ]
+  },
+  variances:{
+    label:"Variance Report", icon:"⚠️", singular:"variance", areaField:null,
+    cols:[
+      F("date","Date","date"),
+      F("source","Source","select",{options:()=>["Cycle Count","IVF","Spot Check","System","Movement"]}),
+      F("sapCode","SAP Code","lookup",{options:()=>DB.inventory.map(i=>i.sapCode)}),
+      F("description","Description","text"),
+      F("bin","Bin","text"),
+      F("physical","Physical","number"),
+      F("system","System / SAP","number"),
+      F("varQty","Variance Qty","computed",{compute:r=>num(r.physical)-num(r.system),pill:v=>v==0?"ok":"bad",tableOnly:true}),
+      F("unitCost","Unit Cost","money"),
+      F("varValue","Variance Value","computed",{compute:r=>(num(r.physical)-num(r.system))*num(r.unitCost),fmt:money,tableOnly:true}),
+      F("varPct","Variance %","computed",{compute:r=>num(r.system)?(((num(r.physical)-num(r.system))/num(r.system))*100).toFixed(1)+"%":"—",tableOnly:true}),
+      F("reason","Reason","select",{options:()=>["Mis-issue","Not booked in SAP","Wrong bin","Damaged / Scrapped","Loss","Data entry error","Found stock","Under investigation","Other"]}),
+      F("status","Status","select",{options:()=>["Open","Investigating","Adjusted","Closed"]}),
+      F("raisedBy","Raised By","select",{options:staffNames}),
+      F("remarks","Remarks","textarea",{grow:1}),
+    ]
+  },
+  interbranch:{
+    label:"Inter-Branch Transfer Tracker", icon:"🚚", singular:"transfer", areaField:null, summary:"interbranch",
+    cols:[
+      F("sn","S/No","text",{ro:true}),
+      F("week","Week No","text"),
+      F("date","Date","date"),
+      F("machine","Machine","select",{options:machineNames}),
+      F("sapCode","SAP Code","lookup",{options:()=>DB.inventory.map(i=>i.sapCode)}),
+      F("description","Description","text"),
+      F("partNo","Part Number","text"),
+      F("qty","Quantity","number"),
+      F("unitCost","Unit Cost","money"),
+      F("totalCost","Total Cost","computed",{compute:r=>num(r.qty)*num(r.unitCost),fmt:money,tableOnly:true}),
+      F("fromPlant","From Plant","select",{options:branchNames}),
+      F("toPlant","To Plant","select",{options:branchNames}),
+      F("reqNo","Requisition No","text"),
+      F("shipDate","Shipping Date","date"),
+      F("duration","Duration (days)","computed",{compute:r=>daysBetween(r.date,r.shipDate),tableOnly:true}),
+      F("prpo","PR / PO","text"),
+      F("status","Status","select",{options:()=>["Pending","Partially Processed","Fully Processed","Cancelled"]}),
+      F("docNo","Document No","text"),
+      F("remarks","Remarks","textarea",{grow:1}),
+    ]
+  },
+  daily:{
+    label:"Daily Issue Tracker", icon:"📋", singular:"issue", areaField:null, summary:"daily",
+    cols:[
+      F("sn","S/N","text",{ro:true}),
+      F("openDate","Opening Date","date",{req:true}),
+      F("description","Description","textarea",{req:true,grow:1}),
+      F("reason","Reason","text"),
+      F("shift","Shift","select",{options:()=>SHIFTS}),
+      F("raisedBy","Raised By","select",{options:staffNames}),
+      F("assignedTo","Assigned To","select",{options:staffNames}),
+      F("closeDate","Closing Date","date"),
+      F("daysOpen","Days Open","computed",{compute:r=>daysBetween(r.openDate,r.closeDate||null),pill:v=>v>5?"bad":"ok",tableOnly:true}),
+      F("status","Status","select",{options:()=>["Open","In Progress","Closed"]}),
+      F("remarks","Remarks","textarea",{grow:1}),
+    ]
+  },
+  gatepass:{
+    label:"Gate Pass Tracker", icon:"🛂", singular:"gate pass", areaField:null,
+    cols:[
+      F("gpNo","GP / No","text",{req:true}),
+      F("date","Date","date"),
+      F("category","Category","select",{options:()=>["Returnable","Non-Returnable"]}),
+      F("serialNo","Serial No","text"),
+      F("description","Description of Items","textarea",{grow:1}),
+      F("qty","Quantity","number"),
+      F("prNo","PR No","text"),
+      F("status","Status","select",{options:()=>["Sent Out","Returned","Cancelled","Non Returnable"]}),
+      F("authBy","Authorized By","text"),
+      F("approvedBy","Approved By","text"),
+      F("returnDate","Return Date","date"),
+      F("remarks","Remarks","textarea",{grow:1}),
+    ]
+  },
+  gas:{
+    label:"Gas Bottle Tracker", icon:"🧯", singular:"gas record", areaField:null,
+    cols:[
+      F("date","Date","date",{req:true}),
+      F("poNo","PO No","text"),
+      F("gasType","Gas Type","select",{options:()=>["LPG","CO2","Argon","Oxygen","Acetylene","Nitrogen","Argon/CO2 Mix","Other"]}),
+      F("direction","Direction","select",{options:()=>["Received Full","Issued to Plant","Returned Empty","Empty Collected by Supplier"]}),
+      F("bottleNo","Bottle No","text"),
+      F("bottleMass","Bottle Mass (Kg)","number"),
+      F("qtyBottles","No. of Bottles","number"),
+      F("receivedBy","Received / Handled By","select",{options:staffNames}),
+      F("supplier","Supplier","text"),
+      F("deliveryNote","Delivery Note","text"),
+      F("remarks","Remarks","textarea",{grow:1}),
+    ]
+  },
+  mda:{
+    label:"Master Data Requests", icon:"🧾", singular:"request", areaField:null,
+    cols:[
+      F("date","Date","date"),
+      F("action","Action Requested","select",{options:()=>["Add New Item into SAP","Amend Min/Max","Make Obsolete","Use Up/Block","Add New Refurbished Item"]}),
+      F("materialNo","Material Number","text"),
+      F("desc1","Description 1","text",{grow:1}),
+      F("desc2","Description 2","text"),
+      F("oemPart","OEM Part Number","text"),
+      F("upn","Universal Part Number","text"),
+      F("machine","Location of Use (Machine)","select",{options:machineNames}),
+      F("uom","UOM","select",{options:()=>UOMS}),
+      F("group","Material Group","select",{options:()=>GROUPS}),
+      F("itemGroup","Item Group Code","text"),
+      F("origin","Product Origin","select",{options:()=>["Local Supply","Import","Other"]}),
+      F("supplier","Supplier (code / name)","text"),
+      F("leadTime","Lead Time (weeks)","number"),
+      F("min","MIN","number"),
+      F("max","MAX","number"),
+      F("requestor","1. Requestor","text"),
+      F("superintendent","2. Technical Superintendent","text"),
+      F("hod","3. Head of Department","text"),
+      F("mdaAdmin","4. Master Data Administrator","text"),
+      F("status","Status","select",{options:()=>["Draft","Submitted","Approved","Rejected","Loaded"]}),
+      F("remarks","Remarks","textarea",{grow:1}),
+    ]
+  },
+  machines:{
+    label:"Machines / Equipment", icon:"⚙️", singular:"machine", areaField:null,
+    cols:[F("code","SAP Prefix","text",{req:true}),F("name","Machine Name","text",{req:true}),F("area","Default Store","text"),F("remarks","Remarks","textarea",{grow:1})]
+  },
+  areas:{
+    label:"Storage Areas", icon:"📍", singular:"area", areaField:null,
+    cols:[F("name","Area Name","text",{req:true}),F("storeCode","Store Code","text"),
+      F("type","Type","select",{options:()=>["Mechanical Store","Electrical Store","Consumables","Other"]}),
+      F("custodian","Custodian","select",{options:staffNames}),F("remarks","Remarks","textarea",{grow:1})]
+  },
+  branches:{
+    label:"Branches / Plants", icon:"🏭", singular:"branch", areaField:null,
+    cols:[F("code","Plant Code","text",{req:true}),F("name","Branch Name","text",{req:true}),F("location","Location","text"),F("remarks","Remarks","textarea",{grow:1})]
+  },
+  staff:{
+    label:"Staff", icon:"👤", singular:"person", areaField:null,
+    cols:[F("name","Name","text",{req:true}),F("role","Role","text"),F("shift","Default Shift","select",{options:()=>SHIFTS}),F("remarks","Remarks","textarea",{grow:1})]
+  },
+};
+
+/* nav layout */
+const NAV = [
+  {grp:"Overview", items:[["dashboard","Dashboard","📊"]]},
+  {grp:"Stock control", items:[
+    ["inventory","Inventory — all areas","📦"],
+    ["bins","Bin Locations","🗄️"],
+    ["counts","Counting Sheets","🧮"],
+    ["variances","Variance Report","⚠️"],
+    ["ivfs","IVF — Verification Form","✅"],
+  ]},
+  {grp:"Movement", items:[
+    ["bincard","Bin Card (movement)","🃏"],
+    ["movements","Movement Tracker","🔁"],
+    ["interbranch","Inter-Branch Transfers","🚚"],
+  ]},
+  {grp:"Operations", items:[
+    ["daily","Daily Issue Tracker","📋"],
+    ["gatepass","Gate Pass Tracker","🛂"],
+    ["gas","Gas Bottle Tracker","🧯"],
+  ]},
+  {grp:"Master data", items:[
+    ["mda","Master Data Requests","🧾"],
+    ["machines","Machines","⚙️"],
+    ["areas","Storage Areas","📍"],
+    ["branches","Branches","🏭"],
+    ["staff","Staff","👤"],
+  ]},
+];
+
+/* ============================================================ *
+ *  APP STATE / ROUTER
+ * ============================================================ */
+let route = "dashboard";
+let globalArea = "";
+const sortState = {}; // key -> {col,dir}
+
+function badgeFor(key){
+  const map={inventory:"inventory",bins:"bins",counts:"counts",variances:"variances",ivfs:"ivfs",
+    movements:"movements",interbranch:"interbranch",daily:"daily",gatepass:"gatepass",gas:"gas",mda:"mda",
+    machines:"machines",areas:"areas",branches:"branches",staff:"staff"};
+  const arr = DB[map[key]];
+  return Array.isArray(arr) ? arr.length : "";
+}
+
+function renderNav(){
+  const nav = document.getElementById("nav");
+  nav.innerHTML = NAV.map(sec=>`
+    <div class="grp">${sec.grp}</div>
+    ${sec.items.map(([k,label,ic])=>`
+      <button data-route="${k}" class="${route===k?'active':''}">
+        <span class="ic">${ic}</span><span>${label}</span>
+        ${badgeFor(k)!==""?`<span class="badge">${badgeFor(k)}</span>`:""}
+      </button>`).join("")}
+  `).join("");
+  nav.querySelectorAll("button[data-route]").forEach(b=>{
+    b.onclick=()=>{ route=b.dataset.route; renderNav(); renderRoute(); window.scrollTo(0,0); };
+  });
+}
+
+function fillGlobalArea(){
+  const sel = document.getElementById("globalArea");
+  const cur = globalArea;
+  sel.innerHTML = `<option value="">All areas</option>` + areaNames().map(a=>`<option ${a===cur?'selected':''}>${esc(a)}</option>`).join("");
+}
+
+function renderRoute(){
+  const app = document.getElementById("app");
+  app.innerHTML = "";
+  if(route==="dashboard") return renderDashboard(app);
+  if(route==="bincard") return renderBinCard(app);
+  if(route==="counts") return renderCounts(app);
+  if(route==="ivfs") return renderIVFs(app);
+  return renderCollection(app, route);
+}
+
+/* ============================================================ *
+ *  GENERIC COLLECTION VIEW
+ * ============================================================ */
+function renderCollection(app, key){
+  const sc = SCHEMAS[key];
+  if(!sc){ app.innerHTML="<div class='empty'>Unknown screen.</div>"; return; }
+  const search = (sortState[key+'_q']||"");
+  const wrap = document.createElement("div");
+  wrap.innerHTML = `
+    <div class="page-h"><h2>${sc.icon} ${esc(sc.label)}</h2></div>
+    <p class="mini">${collDesc(key)}</p>
+    <div class="toolbar">
+      <button class="btn" id="add">+ New ${esc(sc.singular)}</button>
+      <input type="search" id="q" placeholder="Search…" value="${esc(search)}"/>
+      ${sc.areaField?`<select id="areaf"><option value="">All areas</option>${areaNames().map(a=>`<option ${a===globalArea?'selected':''}>${esc(a)}</option>`).join("")}</select>`:""}
+      <button class="btn sec sm" id="imp">Import CSV</button>
+      <button class="btn sec sm" id="exp">Export CSV</button>
+      <button class="btn ghost sm" id="prn">Print</button>
+      <span class="count" id="cnt"></span>
+    </div>
+    <div class="panel"><div class="tablewrap" id="tw"></div></div>
+    <div id="summary"></div>
+  `;
+  app.appendChild(wrap);
+
+  const draw = ()=>{
+    const q = (document.getElementById("q").value||"").toLowerCase();
+    sortState[key+'_q']=q;
+    const af = sc.areaField ? (document.getElementById("areaf")?.value||"") : "";
+    let rows = DB[key].slice();
+    if(sc.areaField && af) rows = rows.filter(r=>r[sc.areaField]===af);
+    if(q) rows = rows.filter(r=>Object.values(r).some(v=>String(v==null?"":v).toLowerCase().includes(q)));
+    const s = sortState[key];
+    if(s){
+      rows.sort((a,b)=>{
+        let av=a[s.col], bv=b[s.col];
+        const col = sc.cols.find(c=>c.key===s.col);
+        if(col && col.type==="computed") { av=col.compute(a); bv=col.compute(b); }
+        const an=parseFloat(av), bn=parseFloat(bv);
+        let r;
+        if(!isNaN(an)&&!isNaN(bn)) r=an-bn; else r=String(av==null?"":av).localeCompare(String(bv==null?"":bv));
+        return s.dir==="desc"?-r:r;
+      });
+    }
+    document.getElementById("cnt").textContent = `${rows.length} of ${DB[key].length}`;
+    const cols = sc.cols;
+    const tw = document.getElementById("tw");
+    if(!rows.length){ tw.innerHTML = `<div class="empty">No records. Click “+ New ${esc(sc.singular)}” or Import CSV.</div>`; }
+    else{
+      tw.innerHTML = `<table class="grid"><thead><tr>${cols.map(c=>`<th data-c="${c.key}">${esc(c.label)}${sortState[key]&&sortState[key].col===c.key?(sortState[key].dir==="desc"?" ▾":" ▴"):""}</th>`).join("")}<th></th></tr></thead>
+        <tbody>${rows.map(r=>`<tr data-id="${r.id}">${cols.map(c=>cellHTML(c,r)).join("")}<td class="no-print"><button class="btn danger sm" data-del="${r.id}">✕</button></td></tr>`).join("")}</tbody></table>`;
+      tw.querySelectorAll("th[data-c]").forEach(th=>th.onclick=()=>{
+        const c=th.dataset.c; const s=sortState[key];
+        sortState[key]= s&&s.col===c ? {col:c,dir:s.dir==="asc"?"desc":"asc"} : {col:c,dir:"asc"};
+        draw();
+      });
+      tw.querySelectorAll("tbody tr").forEach(tr=>tr.onclick=e=>{
+        if(e.target.closest("[data-del]")) return;
+        openForm(key, DB[key].find(x=>x.id===tr.dataset.id));
+      });
+      tw.querySelectorAll("[data-del]").forEach(b=>b.onclick=e=>{
+        e.stopPropagation();
+        if(confirm("Delete this record?")){ DB[key]=DB[key].filter(x=>x.id!==b.dataset.del); save(); renderNav(); draw(); drawSummary(); }
+      });
+    }
+    drawSummary();
+  };
+  const drawSummary = ()=>{
+    const box = document.getElementById("summary");
+    if(sc.summary==="interbranch") box.innerHTML = interbranchSummaryHTML();
+    else if(sc.summary==="daily") box.innerHTML = dailySummaryHTML();
+    else box.innerHTML="";
+  };
+
+  wrap.querySelector("#add").onclick = ()=>openForm(key,null);
+  wrap.querySelector("#q").oninput = draw;
+  if(wrap.querySelector("#areaf")) wrap.querySelector("#areaf").onchange = e=>{ globalArea=e.target.value; document.getElementById("globalArea").value=globalArea; draw(); };
+  wrap.querySelector("#exp").onclick = ()=>exportCSV(key);
+  wrap.querySelector("#imp").onclick = ()=>importCSV(key, draw);
+  wrap.querySelector("#prn").onclick = ()=>printCollection(key);
+  draw();
+}
+
+function collDesc(key){
+  return ({
+    inventory:"Full item register across every store and branch. Click a row to edit. Re-order and Over-Max flags are calculated from Min / Max.",
+    bins:"Every bin location with the items and quantity it holds.",
+    movements:"Every stock transaction. Saving a movement updates the item’s On-Hand quantity and feeds the Bin Card.",
+    variances:"Consolidated count differences from cycle counts, IVFs and spot checks — value and status.",
+    interbranch:"Transfers between GZI SA, Agbara, Aba and Kenya with value roll-up per route.",
+    daily:"Open / closed store issues with ageing. Anything over 5 days open is flagged.",
+    gatepass:"Returnable and non-returnable items leaving site.",
+    gas:"Gas bottle receipts, issues and empty returns by mass.",
+    mda:"Requests to add / amend / obsolete material master data, with the approval chain.",
+    machines:"SAP prefix → machine name lookup used across the program.",
+    areas:"Storage areas / sub-stores.",
+    branches:"Plants in the group.",
+    staff:"People who raise, action and sign for stock.",
+  })[key]||"";
+}
+
+function cellHTML(c,r){
+  let v = c.type==="computed" ? c.compute(r) : r[c.key];
+  if(c.type==="computed" && c.pill){ return `<td><span class="pill ${c.pill(v)}">${esc(c.fmt?c.fmt(v):v)}</span></td>`; }
+  if(c.type==="money") return `<td class="num">${money(v)}</td>`;
+  if(c.type==="number") return `<td class="num">${v===""||v==null?"":int(v)}</td>`;
+  if(c.type==="computed" && c.fmt) return `<td class="num">${esc(c.fmt(v))}</td>`;
+  if(c.key==="status"){ return `<td><span class="pill ${statusPill(v)}">${esc(v||"")}</span></td>`; }
+  let s = String(v==null?"":v);
+  if(s.length>60) s = s.slice(0,58)+"…";
+  return `<td>${esc(s)}</td>`;
+}
+function statusPill(v){
+  v=String(v||"").toLowerCase();
+  if(/(closed|processed|approved|active|adjusted|returned|loaded)/.test(v)) return "ok";
+  if(/(pending|open|draft|submitted|investigat|progress|sent out)/.test(v)) return "warn";
+  if(/(cancel|reject|damaged|obsolete|loss)/.test(v)) return "bad";
+  return "mut";
+}
+
+/* ============================================================ *
+ *  GENERIC ADD / EDIT FORM
+ * ============================================================ */
+function openForm(key, rec){
+  const sc = SCHEMAS[key];
+  const isNew = !rec;
+  const data = rec ? JSON.parse(JSON.stringify(rec)) : defaultRecord(key);
+  const root = document.getElementById("modalRoot");
+  root.innerHTML = `
+    <div class="modal-back">
+      <div class="modal">
+        <h3>${isNew?"New":"Edit"} ${esc(sc.singular)}</h3>
+        <div class="body"><div class="formgrid" id="fg"></div>
+          ${sc.posts?`<p class="hintline">Saving posts this movement: On-Hand for the item becomes <b id="prev">–</b>. Bin Card updates automatically.</p>`:""}
+        </div>
+        <div class="foot">
+          <button class="btn" id="save">Save</button>
+          <button class="btn ghost" id="cancel">Cancel</button>
+          ${!isNew?`<button class="btn danger right" id="del">Delete</button>`:""}
+        </div>
+      </div>
+    </div>`;
+  const fg = root.querySelector("#fg");
+  sc.cols.forEach(c=>{
+    if(c.type==="computed" && c.tableOnly) return;
+    const id = "f_"+c.key;
+    const wide = (c.type==="textarea"||c.grow) ? " wide":"";
+    let field="";
+    const val = data[c.key]==null?"":data[c.key];
+    if(c.type==="textarea") field = `<textarea id="${id}" ${c.ro?"disabled":""}>${esc(val)}</textarea>`;
+    else if(c.type==="select"){
+      const opts = (typeof c.options==="function"?c.options():c.options)||[];
+      field = `<select id="${id}" ${c.ro?"disabled":""}><option value=""></option>${opts.map(o=>`<option ${String(o)===String(val)?"selected":""}>${esc(o)}</option>`).join("")}</select>`;
+    }
+    else if(c.type==="lookup"){
+      const opts=(typeof c.options==="function"?c.options():c.options)||[];
+      field = `<input id="${id}" list="dl_${c.key}" value="${esc(val)}" ${c.ro?"disabled":""}/><datalist id="dl_${c.key}">${opts.map(o=>`<option value="${esc(o)}"></option>`).join("")}</datalist>`;
+    }
+    else {
+      const t = c.type==="date"?"date":(c.type==="number"||c.type==="money")?"number":"text";
+      const step = c.type==="money"?' step="0.01"':(c.type==="number"?' step="any"':"");
+      field = `<input id="${id}" type="${t}"${step} value="${esc(val)}" ${c.ro?"disabled":""}/>`;
+    }
+    fg.insertAdjacentHTML("beforeend",
+      `<div class="fld${wide}"><label for="${id}">${esc(c.label)}${c.req?" *":""}</label>${field}</div>`);
+  });
+
+  // SAP code auto-fill for lookup-bearing schemas
+  const codeField = fg.querySelector("#f_sapCode");
+  if(codeField){
+    const fill = ()=>{
+      const it = findItem(codeField.value);
+      if(!it) return;
+      const map = {description:"description",machine:"machine",area:"area",bin:"bin",unitCost:"unitCost",
+        partNo:"mpn",min:"min",max:"max",uom:"uom"};
+      Object.entries(map).forEach(([f,src])=>{
+        const el = fg.querySelector("#f_"+f);
+        if(el && !el.value) el.value = it[src]==null?"":it[src];
+      });
+      const bs = fg.querySelector("#f_balanceSap"); if(bs && !bs.value) bs.value = it.qty;
+      const sy = fg.querySelector("#f_system"); if(sy && !sy.value) sy.value = it.qty;
+      updatePrev();
+    };
+    codeField.addEventListener("change", fill);
+    codeField.addEventListener("blur", fill);
+  }
+  function updatePrev(){
+    if(!sc.posts) return;
+    const it = findItem(fg.querySelector("#f_sapCode")?.value);
+    const pin = num(fg.querySelector("#f_qtyIn")?.value), pout = num(fg.querySelector("#f_qtyOut")?.value);
+    const el = root.querySelector("#prev");
+    if(el) el.textContent = it ? int(num(it.qty)+pin-pout) + " " + (it.uom||"") : "(item not in register)";
+  }
+  ["#f_qtyIn","#f_qtyOut"].forEach(s=>{ const el=fg.querySelector(s); if(el) el.addEventListener("input",updatePrev); });
+  updatePrev();
+
+  root.querySelector("#cancel").onclick = closeModal;
+  root.querySelector(".modal-back").onclick = e=>{ if(e.target.classList.contains("modal-back")) closeModal(); };
+  if(root.querySelector("#del")) root.querySelector("#del").onclick = ()=>{
+    if(confirm("Delete this record?")){ DB[key]=DB[key].filter(x=>x.id!==rec.id); save(); closeModal(); renderNav(); renderRoute(); }
+  };
+  root.querySelector("#save").onclick = ()=>{
+    const out = Object.assign({}, data);
+    sc.cols.forEach(c=>{
+      if(c.type==="computed" && c.tableOnly) return;
+      const el = fg.querySelector("#f_"+c.key);
+      if(!el) return;
+      let v = el.value;
+      if(c.type==="number"||c.type==="money") v = v===""?"":num(v);
+      out[c.key]=v;
+    });
+    for(const c of sc.cols){ if(c.req && (out[c.key]===""||out[c.key]==null)){ alert(c.label+" is required."); return; } }
+
+    if(isNew){
+      out.id = uid();
+      if(sc.cols.some(c=>c.key==="sn")) out.sn = (DB[key].reduce((m,r)=>Math.max(m,num(r.sn)),0)||0)+1;
+      if(sc.cols.some(c=>c.key==="lineNo")) out.lineNo = (DB[key].reduce((m,r)=>Math.max(m,num(r.lineNo)),0)||0)+1;
+    }
+    if(key==="inventory") out.updatedAt = TODAY();
+
+    // posting side-effects for movement tracker
+    if(sc.posts){
+      const before = out.id;
+      // reverse a previous post if editing
+      if(!isNew && rec) applyStockDelta(rec.sapCode, rec.qtyOut, rec.qtyIn); // undo old
+      const newBal = applyStockDelta(out.sapCode, out.qtyIn, out.qtyOut);
+      out.balance = newBal==null ? num(out.balance) : newBal;
+      if(newBal==null) toast("Saved. Note: "+out.sapCode+" is not in the Inventory register, so On-Hand was not updated.");
+    }
+
+    if(isNew) DB[key].push(out);
+    else DB[key] = DB[key].map(x=>x.id===rec.id?out:x);
+    save(); closeModal(); renderNav(); renderRoute();
+  };
+}
+function defaultRecord(key){
+  const sc = SCHEMAS[key]; const o = {};
+  sc.cols.forEach(c=>{ o[c.key] = (c.type==="number"||c.type==="money")?0:""; });
+  if("date" in o) o.date = TODAY();
+  if("openDate" in o) o.openDate = TODAY();
+  if("countDate" in o) o.countDate = TODAY();
+  if(key==="inventory"){ o.branch="GZI SA"; o.sloc="6080"; o.uom="PC"; if(globalArea) o.area=globalArea; }
+  if(key==="movements"){ o.shift="Day"; o.type="Issue"; if(globalArea) o.area=globalArea; }
+  if(key==="interbranch"){ o.fromPlant="GZI SA"; o.status="Pending"; o.week=weekOf(TODAY()); }
+  if(key==="daily"){ o.status="Open"; }
+  if(key==="bins" && globalArea) o.area=globalArea;
+  return o;
+}
+function closeModal(){ document.getElementById("modalRoot").innerHTML=""; }
+function toast(msg){ alert(msg); }
+
+/* ============================================================ *
+ *  DASHBOARD
+ * ============================================================ */
+function renderDashboard(app){
+  const inv = DB.inventory;
+  const areaFilter = globalArea ? inv.filter(i=>i.area===globalArea) : inv;
+  const sohValue = areaFilter.reduce((a,i)=>a+num(i.qty)*num(i.unitCost),0);
+  const reorder = areaFilter.filter(i=>num(i.qty)<=num(i.min) && (num(i.min)>0||num(i.max)>0));
+  const overMax = areaFilter.filter(i=>num(i.max)>0 && num(i.qty)>num(i.max));
+  const overMaxVal = overMax.reduce((a,i)=>a+(num(i.qty)-num(i.max))*num(i.unitCost),0);
+  const noMove = areaFilter.filter(i=>/no movement/i.test(i.status));
+  const emptyBins = DB.bins.filter(b=> DB.inventory.filter(i=>i.bin===b.code).reduce((a,i)=>a+num(i.qty),0)===0 );
+  const openVar = DB.variances.filter(v=>/open|investigat/i.test(v.status));
+  const openXfer = DB.interbranch.filter(t=>!/fully processed|cancelled/i.test(t.status));
+  const openIssues = DB.daily.filter(d=>!/closed/i.test(d.status));
+  const agedIssues = openIssues.filter(d=>daysBetween(d.openDate,null)>5);
+
+  app.innerHTML = `
+    <div class="page-h"><h2>📊 Dashboard</h2><p>${globalArea?("Filtered: "+esc(globalArea)):"All areas"} · ${DB.inventory.length} items on register</p></div>
+    <div class="cards">
+      ${kpi("On-hand items", int(areaFilter.length), "SOH value "+money(sohValue))}
+      ${kpi("Re-order now", reorder.length, "at or below Min", reorder.length?"bad":"ok","inventory")}
+      ${kpi("Over max", overMax.length, money(overMaxVal)+" tied up", overMax.length?"warn":"ok","inventory")}
+      ${kpi("No-movement lines", noMove.length, "review for obsolescence")}
+      ${kpi("Empty bins", emptyBins.length, "of "+DB.bins.length+" bins","mut","bins")}
+      ${kpi("Open variances", openVar.length, "count differences unresolved", openVar.length?"warn":"ok","variances")}
+      ${kpi("Open inter-branch", openXfer.length, "transfers in progress","mut","interbranch")}
+      ${kpi("Open daily issues", openIssues.length, agedIssues.length+" over 5 days", agedIssues.length?"bad":"ok","daily")}
+    </div>
+
+    <div class="grid2">
+      <div class="panel" style="padding:14px">
+        <div class="sechead">Stock value by area</div>
+        ${valueByAreaHTML()}
+      </div>
+      <div class="panel" style="padding:14px">
+        <div class="sechead">Re-order list ${reorder.length?`<span class="tag">${reorder.length}</span>`:""}</div>
+        ${reorder.length? `<div class="tablewrap"><table class="grid"><thead><tr><th>SAP</th><th>Description</th><th>Area</th><th class="num">On hand</th><th class="num">Min</th><th class="num">Order to Max</th></tr></thead><tbody>
+          ${reorder.slice(0,40).map(i=>`<tr><td>${esc(i.sapCode)}</td><td>${esc(i.description)}</td><td>${esc(i.area)}</td><td class="num">${int(i.qty)}</td><td class="num">${int(i.min)}</td><td class="num">${int(Math.max(0,num(i.max)-num(i.qty)))}</td></tr>`).join("")}
+        </tbody></table></div>` : `<div class="empty">Nothing below Min. 👍</div>`}
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:16px">
+      <div class="panel" style="padding:14px">
+        <div class="sechead">Inter-branch transfers by route</div>
+        ${interbranchSummaryHTML(true)}
+      </div>
+      <div class="panel" style="padding:14px">
+        <div class="sechead">Daily issues by person</div>
+        ${dailySummaryHTML(true)}
+      </div>
+    </div>
+  `;
+  app.querySelectorAll("[data-go]").forEach(el=>el.onclick=()=>{ route=el.dataset.go; renderNav(); renderRoute(); });
+}
+function kpi(lbl,val,hint,tone,go){
+  return `<div class="kpi ${go?'click':''}" ${go?`data-go="${go}"`:""}>
+    <div class="lbl">${esc(lbl)}</div>
+    <div class="val" ${tone?`style="color:var(--${tone==='bad'?'danger':tone==='warn'?'warn':tone==='ok'?'accent':'ink'})"`:""}>${esc(val)}</div>
+    <div class="hint">${esc(hint||"")}</div>
+  </div>`;
+}
+function valueByAreaHTML(){
+  const map={};
+  DB.inventory.forEach(i=>{ const a=i.area||"(no area)"; map[a]=(map[a]||0)+num(i.qty)*num(i.unitCost); });
+  const rows=Object.entries(map).sort((a,b)=>b[1]-a[1]);
+  const mx=Math.max(1,...rows.map(r=>r[1]));
+  if(!rows.length) return `<div class="empty">No inventory yet.</div>`;
+  return rows.map(([a,v])=>`<div style="margin:8px 0">
+    <div class="flex"><span>${esc(a)}</span><span class="right mini">${money(v)}</span></div>
+    <div class="bar"><i style="width:${(v/mx*100).toFixed(1)}%"></i></div></div>`).join("");
+}
+function interbranchSummaryHTML(compact){
+  const map={};
+  DB.interbranch.forEach(t=>{
+    const k=(t.fromPlant||"?")+" → "+(t.toPlant||"?");
+    map[k]=map[k]||{n:0,open:0,val:0};
+    map[k].n++; map[k].val += num(t.qty)*num(t.unitCost);
+    if(!/fully processed|cancelled/i.test(t.status)) map[k].open++;
+  });
+  const rows=Object.entries(map);
+  if(!rows.length) return `<div class="empty">No transfers logged.</div>`;
+  const total = rows.reduce((a,[,v])=>a+v.val,0);
+  return `<div class="tablewrap"><table class="grid"><thead><tr><th>Route</th><th class="num">Transfers</th><th class="num">Open</th><th class="num">Value</th></tr></thead>
+    <tbody>${rows.map(([k,v])=>`<tr><td>${esc(k)}</td><td class="num">${v.n}</td><td class="num">${v.open}</td><td class="num">${money(v.val)}</td></tr>`).join("")}
+    <tr><td><b>YTD total</b></td><td class="num"><b>${DB.interbranch.length}</b></td><td></td><td class="num"><b>${money(total)}</b></td></tr></tbody></table></div>`;
+}
+function dailySummaryHTML(compact){
+  const map={};
+  DB.daily.forEach(d=>{ const p=d.assignedTo||"(unassigned)"; map[p]=map[p]||{open:0,closed:0}; if(/closed/i.test(d.status)) map[p].closed++; else map[p].open++; });
+  const rows=Object.entries(map);
+  if(!rows.length) return `<div class="empty">No issues logged.</div>`;
+  return `<div class="tablewrap"><table class="grid"><thead><tr><th>Assigned to</th><th class="num">Open</th><th class="num">Closed</th></tr></thead>
+    <tbody>${rows.map(([p,v])=>`<tr><td>${esc(p)}</td><td class="num">${v.open}</td><td class="num">${v.closed}</td></tr>`).join("")}</tbody></table></div>`;
+}
+
+/* ============================================================ *
+ *  BIN CARD  (movement history + running balance for one item)
+ * ============================================================ */
+function renderBinCard(app){
+  const sel = sortState.bincard_code || (DB.inventory[0]?DB.inventory[0].sapCode:"");
+  app.innerHTML = `
+    <div class="page-h"><h2>🃏 Bin Card</h2><p>Movement history and running balance for a single item / bin.</p></div>
+    <div class="toolbar">
+      <label class="mini">Item&nbsp;</label>
+      <input type="search" id="pick" list="allcodes" placeholder="SAP code…" value="${esc(sel)}" style="min-width:260px"/>
+      <datalist id="allcodes">${DB.inventory.map(i=>`<option value="${esc(i.sapCode)}">${esc(i.description)}</option>`).join("")}</datalist>
+      <button class="btn sm" id="go">Show</button>
+      <button class="btn ghost sm" id="prn">Print card</button>
+      <span class="right"></span>
+    </div>
+    <div id="card"></div>`;
+  const draw = ()=>{
+    const code = document.getElementById("pick").value.trim();
+    sortState.bincard_code = code;
+    const it = findItem(code);
+    const box = document.getElementById("card");
+    const moves = DB.movements.filter(m=>String(m.sapCode||"").toUpperCase()===code.toUpperCase())
+      .slice().sort((a,b)=> (a.date||"").localeCompare(b.date||"") || num(a.lineNo)-num(b.lineNo));
+    // also inter-branch as out/in
+    const xfers = DB.interbranch.filter(t=>String(t.sapCode||"").toUpperCase()===code.toUpperCase())
+      .map(t=>({date:t.shipDate||t.date, type:(t.fromPlant==="GZI SA"?"Transfer Out":"Transfer In"), docNo:t.prpo||t.docNo,
+        qtyIn:t.fromPlant==="GZI SA"?0:num(t.qty), qtyOut:t.fromPlant==="GZI SA"?num(t.qty):0, onShift:"", shift:"", bin:t.machine, remarks:(t.fromPlant+"→"+t.toPlant), _x:true}));
+    let all = moves.concat(xfers).sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+    const net = all.reduce((a,m)=>a+num(m.qtyIn)-num(m.qtyOut),0);
+    const hasManual = Object.prototype.hasOwnProperty.call(DB.binCardOpening, code);
+    // default opening balance reconciles the card to the register on-hand
+    const opening = hasManual ? num(DB.binCardOpening[code]) : (it ? num(it.qty) - net : 0);
+    let bal = opening;
+    const rowsHTML = all.map(m=>{
+      bal += num(m.qtyIn) - num(m.qtyOut);
+      return `<tr>
+        <td>${esc(m.date||"")}</td><td>${esc(m.type||"")}</td><td>${esc(m.docNo||"")}</td>
+        <td>${esc(m.bin||"")}</td>
+        <td class="num">${num(m.qtyIn)?int(m.qtyIn):""}</td>
+        <td class="num">${num(m.qtyOut)?int(m.qtyOut):""}</td>
+        <td class="num"><b>${int(bal)}</b></td>
+        <td>${esc(m.onShift||"")}</td><td>${esc(m.shift||"")}</td>
+        <td>${esc(m.remarks||"")}${m._x?` <span class="tag">inter-branch</span>`:""}</td></tr>`;
+    }).join("");
+    box.innerHTML = `
+      <div class="panel" style="padding:14px;margin-bottom:12px">
+        <div class="flex">
+          <div><div class="lbl mini">ITEM</div><b>${esc(code)}</b> — ${esc(it?it.description:"(not on register)")}</div>
+          <div class="right flex" style="gap:20px">
+            <div><div class="lbl mini">BIN</div>${esc(it?it.bin:"—")}</div>
+            <div><div class="lbl mini">UOM</div>${esc(it?it.uom:"—")}</div>
+            <div><div class="lbl mini">MIN / MAX</div>${it?int(it.min)+" / "+int(it.max):"—"}</div>
+            <div><div class="lbl mini">REGISTER ON-HAND</div><b>${it?int(it.qty):"—"}</b></div>
+          </div>
+        </div>
+        <div class="flex" style="margin-top:10px">
+          <label class="mini">Opening balance&nbsp;</label>
+          <input type="number" id="ob" value="${opening}" style="width:120px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;color:var(--ink)"/>
+          <button class="btn sm" id="saveob">Set</button>
+          <span class="mini">Card close balance: <b>${int(bal)}</b>${it && bal!==num(it.qty)?` <span class="pill bad">differs from register (${int(it.qty)})</span>`:` <span class="pill ok">matches register</span>`}</span>
+          <button class="btn sm right" id="addmove">+ Add movement</button>
+        </div>
+      </div>
+      <div class="panel"><div class="tablewrap">
+        <table class="grid"><thead><tr><th>Date</th><th>Type</th><th>Ref / Doc</th><th>Bin</th><th class="num">In</th><th class="num">Out</th><th class="num">Balance</th><th>On shift</th><th>Shift</th><th>Remarks</th></tr></thead>
+        <tbody>${all.length?rowsHTML:`<tr><td colspan="10" class="empty">No movements recorded for this item.</td></tr>`}</tbody></table>
+      </div></div>`;
+    box.querySelector("#saveob").onclick=()=>{ DB.binCardOpening[code]=num(box.querySelector("#ob").value); save(); draw(); };
+    box.querySelector("#addmove").onclick=()=>{ const r=defaultRecord("movements"); r.sapCode=code; if(it){r.description=it.description;r.bin=it.bin;r.area=it.area;r.machine=it.machine;} openForm("movements",Object.assign(r,{id:null})); };
+  };
+  app.querySelector("#go").onclick=draw;
+  app.querySelector("#pick").addEventListener("change",draw);
+  app.querySelector("#prn").onclick=()=>printBinCard(document.getElementById("pick").value.trim());
+  draw();
+}
+
+/* ============================================================ *
+ *  COUNTING SHEETS  (parent + editable lines)
+ * ============================================================ */
+function renderCounts(app){
+  app.innerHTML = `
+    <div class="page-h"><h2>🧮 Counting Sheets</h2><p>Cycle-count sheets by area. Generate lines from the register, capture the physical count, then post to update stock and raise variances.</p></div>
+    <div class="toolbar"><button class="btn" id="new">+ New count sheet</button><span class="count">${DB.counts.length} sheet(s)</span></div>
+    <div class="panel"><div class="tablewrap"><table class="grid">
+      <thead><tr><th>Count Date</th><th>Week</th><th>Month</th><th>Counter</th><th>Area</th><th class="num">Lines</th><th class="num">Counted</th><th class="num">Variances</th><th>Status</th></tr></thead>
+      <tbody>${DB.counts.length?DB.counts.map(c=>{
+        const counted=c.lines.filter(l=>/^y/i.test(l.counted||"")||l.physical!=="").length;
+        const varn=c.lines.filter(l=>num(l.physical)-num(l.system)!==0).length;
+        return `<tr data-id="${c.id}"><td>${esc(c.countDate)}</td><td>${esc(c.weekNo||weekOf(c.countDate))}</td><td>${esc(c.month||monthOf(c.countDate))}</td><td>${esc(c.counter||"")}</td><td>${esc(c.area||"")}</td><td class="num">${c.lines.length}</td><td class="num">${counted}</td><td class="num">${varn}</td><td><span class="pill ${statusPill(c.status)}">${esc(c.status||"Draft")}</span></td></tr>`;
+      }).join(""):`<tr><td colspan="9" class="empty">No count sheets yet.</td></tr>`}</tbody>
+    </table></div></div>`;
+  app.querySelector("#new").onclick=()=>{
+    const c={id:uid(),countDate:TODAY(),weekNo:weekOf(TODAY()),month:monthOf(TODAY()),counter:"",area:globalArea||"",status:"Draft",lines:[]};
+    DB.counts.push(c); save(); editCount(c.id);
+  };
+  app.querySelectorAll("tbody tr[data-id]").forEach(tr=>tr.onclick=()=>editCount(tr.dataset.id));
+}
+function editCount(id){
+  const c = DB.counts.find(x=>x.id===id);
+  const app = document.getElementById("app");
+  const draw = ()=>{
+    app.innerHTML = `
+      <div class="page-h"><h2>🧮 Count sheet</h2><p>${esc(c.area||"All areas")} · ${esc(c.month||"")}</p></div>
+      <div class="toolbar no-print">
+        <button class="btn sec sm" id="back">← All sheets</button>
+        <button class="btn sm" id="gen">Generate lines from register</button>
+        <button class="btn sm" id="addl">+ Blank line</button>
+        <button class="btn sm" id="post">Post counts → stock & variances</button>
+        <button class="btn ghost sm" id="prn">Print</button>
+        <button class="btn danger sm right" id="delc">Delete sheet</button>
+      </div>
+      <div class="panel" style="padding:14px;margin-bottom:12px"><div class="formgrid">
+        <div class="fld"><label>Count Date</label><input type="date" id="h_date" value="${esc(c.countDate)}"></div>
+        <div class="fld"><label>Week No</label><input id="h_week" value="${esc(c.weekNo||"")}"></div>
+        <div class="fld"><label>Month</label><input id="h_month" value="${esc(c.month||"")}"></div>
+        <div class="fld"><label>Counter</label><select id="h_counter"><option value=""></option>${staffNames().map(s=>`<option ${s===c.counter?"selected":""}>${esc(s)}</option>`).join("")}</select></div>
+        <div class="fld"><label>Area</label><select id="h_area"><option value=""></option>${areaNames().map(a=>`<option ${a===c.area?"selected":""}>${esc(a)}</option>`).join("")}</select></div>
+        <div class="fld"><label>Status</label><select id="h_status">${["Draft","Counting","Posted"].map(s=>`<option ${s===c.status?"selected":""}>${esc(s)}</option>`).join("")}</select></div>
+      </div></div>
+      <div class="panel"><div class="tablewrap"><table class="subgrid" id="lines">
+        <thead><tr><th>#</th><th>SAP Code</th><th>Description</th><th>Part No</th><th>UOM</th><th>Bin</th><th>Min</th><th>Max</th><th>System</th><th>Physical</th><th>Variance</th><th>Movement Status</th><th>Counted</th><th>Comments</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table></div></div>
+      <p class="mini">Variance = Physical − System. Posting updates the item’s On-Hand to the physical count, writes an Adjustment movement, and adds a row to the Variance Report for every non-zero line.</p>`;
+    const tb = app.querySelector("#lines tbody");
+    c.lines.forEach((l,idx)=>{
+      const tr=document.createElement("tr");
+      const v=num(l.physical)-num(l.system);
+      tr.innerHTML = `
+        <td>${idx+1}</td>
+        <td><input value="${esc(l.sapCode||"")}" data-k="sapCode" list="allcodes2"></td>
+        <td><input value="${esc(l.description||"")}" data-k="description"></td>
+        <td><input value="${esc(l.partNo||"")}" data-k="partNo"></td>
+        <td><input value="${esc(l.uom||"")}" data-k="uom" style="width:60px"></td>
+        <td><input value="${esc(l.bin||"")}" data-k="bin"></td>
+        <td><input class="num" type="number" value="${esc(l.min)}" data-k="min" style="width:60px"></td>
+        <td><input class="num" type="number" value="${esc(l.max)}" data-k="max" style="width:60px"></td>
+        <td><input class="num" type="number" value="${esc(l.system)}" data-k="system" style="width:70px"></td>
+        <td><input class="num" type="number" value="${esc(l.physical)}" data-k="physical" style="width:70px"></td>
+        <td class="num" style="${v!==0?'color:var(--danger);font-weight:700':''}">${v}</td>
+        <td><select data-k="movementStatus"><option value=""></option>${STOCK_STATUS.map(s=>`<option ${s===l.movementStatus?"selected":""}>${esc(s)}</option>`).join("")}</select></td>
+        <td><select data-k="counted" style="width:60px"><option ${/^y/i.test(l.counted||"")?"selected":""}>Y</option><option ${!/^y/i.test(l.counted||"")?"selected":""}>N</option></select></td>
+        <td><input value="${esc(l.comments||"")}" data-k="comments"></td>
+        <td><button class="rowdel" title="remove">✕</button></td>`;
+      tr.querySelectorAll("[data-k]").forEach(el=>el.addEventListener("input",()=>{
+        l[el.dataset.k] = (el.type==="number")? (el.value===""?"":num(el.value)) : el.value;
+        if(el.dataset.k==="sapCode"){ const it=findItem(el.value); if(it){ l.description=it.description;l.partNo=it.mpn;l.uom=it.uom;l.bin=it.bin;l.min=it.min;l.max=it.max;l.system=it.qty; save(); draw(); } }
+        save();
+        const vc = tr.children[10]; const nv=num(l.physical)-num(l.system);
+        vc.textContent=nv; vc.style.cssText = nv!==0?'color:var(--danger);font-weight:700':'';
+      }));
+      tr.querySelector(".rowdel").onclick=()=>{ c.lines.splice(idx,1); save(); draw(); };
+      tb.appendChild(tr);
+    });
+    if(!app.querySelector("#allcodes2")){
+      app.insertAdjacentHTML("beforeend",`<datalist id="allcodes2">${DB.inventory.map(i=>`<option value="${esc(i.sapCode)}">${esc(i.description)}</option>`).join("")}</datalist>`);
+    }
+    const bind=(sel,prop,isSel)=>{ const el=app.querySelector(sel); el.addEventListener("input",()=>{ c[prop]=el.value; save(); }); };
+    bind("#h_date","countDate");bind("#h_week","weekNo");bind("#h_month","month");
+    bind("#h_counter","counter");bind("#h_area","area");bind("#h_status","status");
+    app.querySelector("#back").onclick=()=>renderCounts(app);
+    app.querySelector("#addl").onclick=()=>{ c.lines.push({id:uid(),sapCode:"",description:"",partNo:"",uom:"",bin:"",min:"",max:"",system:"",physical:"",movementStatus:"",counted:"N",comments:""}); save(); draw(); };
+    app.querySelector("#gen").onclick=()=>{
+      let pool = DB.inventory.slice();
+      if(c.area) pool = pool.filter(i=>i.area===c.area);
+      if(!pool.length){ alert("No register items"+(c.area?" in "+c.area:"")+"."); return; }
+      const have = new Set(c.lines.map(l=>l.sapCode));
+      pool.forEach(i=>{ if(have.has(i.sapCode)) return;
+        c.lines.push({id:uid(),sapCode:i.sapCode,description:i.description,partNo:i.mpn,uom:i.uom,bin:i.bin,min:i.min,max:i.max,system:i.qty,physical:"",movementStatus:i.status,counted:"N",comments:""});
+      });
+      save(); draw();
+    };
+    app.querySelector("#delc").onclick=()=>{ if(confirm("Delete this count sheet?")){ DB.counts=DB.counts.filter(x=>x.id!==c.id); save(); renderNav(); renderCounts(app); } };
+    app.querySelector("#prn").onclick=()=>printCount(c);
+    app.querySelector("#post").onclick=()=>{
+      const changed = c.lines.filter(l=>l.physical!=="" && num(l.physical)-num(l.system)!==0);
+      if(!changed.length && !confirm("No variances to post. Still mark sheet Posted?")) return;
+      changed.forEach(l=>{
+        const before = num(l.system), after = num(l.physical), delta = after-before;
+        const it = findItem(l.sapCode);
+        const uc = it?num(it.unitCost):0;
+        DB.movements.push({id:uid(),lineNo:(DB.movements.reduce((m,r)=>Math.max(m,num(r.lineNo)),0)||0)+1,
+          date:c.countDate,sapCode:l.sapCode,description:l.description,machine:it?it.machine:"",area:c.area,bin:l.bin,
+          type:"Adjustment",qtyIn:delta>0?delta:0,qtyOut:delta<0?-delta:0,balance:after,balanceSap:after,
+          docNo:"CYCLE COUNT "+(c.weekNo||c.countDate),onShift:c.counter,shift:"",reason:"Cycle count adjustment",remarks:l.comments||""});
+        if(it){ it.qty = after; it.updatedAt=TODAY(); }
+        DB.variances.push({id:uid(),date:c.countDate,source:"Cycle Count",sapCode:l.sapCode,description:l.description,bin:l.bin,
+          physical:after,system:before,unitCost:uc,reason:"Under investigation",status:"Open",raisedBy:c.counter,remarks:"From count "+(c.weekNo||c.countDate)});
+      });
+      c.status="Posted"; save(); renderNav();
+      alert(`Posted. ${changed.length} adjustment(s) written to stock, movements and the Variance Report.`);
+      draw();
+    };
+  };
+  draw();
+}
+
+/* ============================================================ *
+ *  IVF — Inventory Verification Form
+ * ============================================================ */
+function renderIVFs(app){
+  app.innerHTML = `
+    <div class="page-h"><h2>✅ Inventory Verification Form (IVF)</h2><p>Structured verification with compliance %, re-order status and PR/PO count. Printable.</p></div>
+    <div class="toolbar no-print"><button class="btn" id="new">+ New IVF</button><span class="count">${DB.ivfs.length} form(s)</span></div>
+    <div class="panel"><div class="tablewrap"><table class="grid">
+      <thead><tr><th>Date</th><th>Verified By</th><th>Shift</th><th class="num">Items</th><th class="num">Accurate</th><th class="num">Inaccurate</th><th class="num">Compliance</th><th class="num">Re-order (PR/PO)</th></tr></thead>
+      <tbody>${DB.ivfs.length?DB.ivfs.map(f=>{const k=ivfKPI(f);return `<tr data-id="${f.id}"><td>${esc(f.date)}</td><td>${esc(f.verifiedBy||"")}</td><td>${esc(f.shift||"")}</td><td class="num">${k.total}</td><td class="num">${k.acc}</td><td class="num">${k.inacc}</td><td class="num"><span class="pill ${k.pct>=95?'ok':k.pct>=80?'warn':'bad'}">${k.pct}%</span></td><td class="num">${k.reorder}</td></tr>`;}).join(""):`<tr><td colspan="8" class="empty">No IVFs yet.</td></tr>`}</tbody>
+    </table></div></div>`;
+  app.querySelector("#new").onclick=()=>{ const f={id:uid(),date:TODAY(),verifiedBy:"",shift:"",signature:"",lines:[]}; DB.ivfs.push(f); save(); editIVF(f.id); };
+  app.querySelectorAll("tbody tr[data-id]").forEach(tr=>tr.onclick=()=>editIVF(tr.dataset.id));
+}
+function ivfKPI(f){
+  const done = f.lines.filter(l=>l.physical!=="" && l.physical!=null);
+  const acc = done.filter(l=>num(l.physical)-num(l.sapQty)===0).length;
+  const inacc = done.length-acc;
+  const pct = done.length? Math.round(acc/done.length*100) : 0;
+  const reorder = f.lines.filter(l=>num(l.physical)<=num(l.min) && (num(l.min)>0||num(l.max)>0)).length;
+  const emptyBins = f.lines.filter(l=>num(l.physical)===0).length;
+  return {total:f.lines.length,acc,inacc,pct,reorder,emptyBins};
+}
+function editIVF(id){
+  const f = DB.ivfs.find(x=>x.id===id);
+  const app = document.getElementById("app");
+  const draw = ()=>{
+    const k = ivfKPI(f);
+    app.innerHTML = `
+      <div class="page-h"><h2>✅ IVF</h2><p>${esc(f.date)} · ${esc(f.verifiedBy||"")}</p></div>
+      <div class="toolbar no-print">
+        <button class="btn sec sm" id="back">← All IVFs</button>
+        <button class="btn sm" id="addFromInv">+ Add items from register</button>
+        <button class="btn sm" id="addl">+ Blank line</button>
+        <button class="btn sm" id="postVar">Post inaccurate lines → Variance Report</button>
+        <button class="btn ghost sm" id="prn">Print IVF</button>
+        <button class="btn danger sm right" id="del">Delete</button>
+      </div>
+      <div class="cards">
+        ${kpi("Total items",k.total,"")}
+        ${kpi("Accurate",k.acc,"",k.acc?"ok":"mut")}
+        ${kpi("In-accurate",k.inacc,"",k.inacc?"bad":"ok")}
+        ${kpi("Compliance %",k.pct+"%","",k.pct>=95?"ok":k.pct>=80?"warn":"bad")}
+        ${kpi("Empty bins",k.emptyBins,"")}
+        ${kpi("PR / PO to raise",k.reorder,"at or below Min",k.reorder?"warn":"ok")}
+      </div>
+      <div class="panel" style="padding:14px;margin-bottom:12px"><div class="formgrid">
+        <div class="fld"><label>Date</label><input type="date" id="h_date" value="${esc(f.date)}"></div>
+        <div class="fld"><label>Verified By</label><select id="h_by"><option value=""></option>${staffNames().map(s=>`<option ${s===f.verifiedBy?"selected":""}>${esc(s)}</option>`).join("")}</select></div>
+        <div class="fld"><label>Shift</label><select id="h_shift"><option value=""></option>${SHIFTS.map(s=>`<option ${s===f.shift?"selected":""}>${esc(s)}</option>`).join("")}</select></div>
+        <div class="fld"><label>Signature</label><input id="h_sig" value="${esc(f.signature||"")}" placeholder="name / initials"></div>
+      </div></div>
+      <div class="panel"><div class="tablewrap"><table class="subgrid" id="lines">
+        <thead><tr><th>#</th><th>Date</th><th>Material Code</th><th>Description</th><th>Min</th><th>Max</th><th>Movement Type</th><th>Location</th><th>Physical</th><th>SAP Qty</th><th>Variance</th><th>Re-order Status</th><th>Re-order Qty</th><th>Txn Audit</th><th>Remarks</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table></div></div>`;
+    const tb = app.querySelector("#lines tbody");
+    f.lines.forEach((l,idx)=>{
+      const v = (l.physical===""||l.physical==null)?"" : num(l.physical)-num(l.sapQty);
+      const ro = (num(l.physical)<=num(l.min) && (num(l.min)>0||num(l.max)>0)) ? "Yes — re-order" : "Do not order";
+      const tr=document.createElement("tr");
+      tr.innerHTML=`
+        <td>${idx+1}</td>
+        <td><input type="date" value="${esc(l.date||f.date)}" data-k="date"></td>
+        <td><input value="${esc(l.materialCode||"")}" data-k="materialCode" list="ivfcodes"></td>
+        <td><input value="${esc(l.description||"")}" data-k="description"></td>
+        <td><input class="num" type="number" value="${esc(l.min)}" data-k="min" style="width:56px"></td>
+        <td><input class="num" type="number" value="${esc(l.max)}" data-k="max" style="width:56px"></td>
+        <td><select data-k="movementType"><option value=""></option>${MOVE_TYPES.map(m=>`<option ${m===l.movementType?"selected":""}>${esc(m)}</option>`).join("")}</select></td>
+        <td><input value="${esc(l.location||"")}" data-k="location"></td>
+        <td><input class="num" type="number" value="${esc(l.physical)}" data-k="physical" style="width:66px"></td>
+        <td><input class="num" type="number" value="${esc(l.sapQty)}" data-k="sapQty" style="width:66px"></td>
+        <td class="num" style="${v!==""&&v!==0?'color:var(--danger);font-weight:700':''}">${v}</td>
+        <td><span class="pill ${ro.startsWith('Yes')?'bad':'mut'}">${ro}</span></td>
+        <td><input class="num" type="number" value="${esc(l.reorderQty)}" data-k="reorderQty" style="width:66px"></td>
+        <td><input value="${esc(l.txnAudit||"")}" data-k="txnAudit"></td>
+        <td><input value="${esc(l.remarks||"")}" data-k="remarks"></td>
+        <td><button class="rowdel">✕</button></td>`;
+      tr.querySelectorAll("[data-k]").forEach(el=>el.addEventListener("input",()=>{
+        l[el.dataset.k] = el.type==="number" ? (el.value===""?"":num(el.value)) : el.value;
+        if(el.dataset.k==="materialCode"){ const it=findItem(el.value); if(it){ l.description=it.description;l.min=it.min;l.max=it.max;l.location=it.bin;l.sapQty=it.qty; save(); draw(); return; } }
+        save(); draw();
+      }));
+      tr.querySelector(".rowdel").onclick=()=>{ f.lines.splice(idx,1); save(); draw(); };
+      tb.appendChild(tr);
+    });
+    if(!app.querySelector("#ivfcodes")) app.insertAdjacentHTML("beforeend",`<datalist id="ivfcodes">${DB.inventory.map(i=>`<option value="${esc(i.sapCode)}">${esc(i.description)}</option>`).join("")}</datalist>`);
+    const bind=(sel,prop)=>{ const el=app.querySelector(sel); el.addEventListener("input",()=>{ f[prop]=el.value; save(); if(prop==="date") draw(); }); };
+    bind("#h_date","date");bind("#h_by","verifiedBy");bind("#h_shift","shift");bind("#h_sig","signature");
+    app.querySelector("#back").onclick=()=>renderIVFs(app);
+    app.querySelector("#addl").onclick=()=>{ f.lines.push({id:uid(),no:f.lines.length+1,date:f.date,materialCode:"",description:"",min:"",max:"",movementType:"",location:"",physical:"",sapQty:"",reorderQty:"",txnAudit:"",remarks:""}); save(); draw(); };
+    app.querySelector("#addFromInv").onclick=()=>{
+      const area = prompt("Add items from which area? (leave blank for all"+(globalArea?", current: "+globalArea:"")+")", globalArea||"");
+      if(area===null) return;
+      let pool = DB.inventory.slice();
+      if(area) pool = pool.filter(i=>i.area.toLowerCase()===area.toLowerCase());
+      const have=new Set(f.lines.map(l=>l.materialCode));
+      pool.forEach(i=>{ if(have.has(i.sapCode))return; f.lines.push({id:uid(),no:f.lines.length+1,date:f.date,materialCode:i.sapCode,description:i.description,min:i.min,max:i.max,movementType:"",location:i.bin,physical:"",sapQty:i.qty,reorderQty:"",txnAudit:"",remarks:""}); });
+      save(); draw();
+    };
+    app.querySelector("#postVar").onclick=()=>{
+      const bad = f.lines.filter(l=>l.physical!=="" && num(l.physical)-num(l.sapQty)!==0);
+      if(!bad.length){ alert("No inaccurate lines."); return; }
+      bad.forEach(l=>{ const it=findItem(l.materialCode);
+        DB.variances.push({id:uid(),date:f.date,source:"IVF",sapCode:l.materialCode,description:l.description,bin:l.location,
+          physical:num(l.physical),system:num(l.sapQty),unitCost:it?num(it.unitCost):0,reason:"Under investigation",status:"Open",raisedBy:f.verifiedBy,remarks:"From IVF "+f.date});
+      });
+      save(); renderNav(); alert(bad.length+" line(s) added to the Variance Report.");
+    };
+    app.querySelector("#del").onclick=()=>{ if(confirm("Delete this IVF?")){ DB.ivfs=DB.ivfs.filter(x=>x.id!==f.id); save(); renderNav(); renderIVFs(app); } };
+    app.querySelector("#prn").onclick=()=>printIVF(f);
+  };
+  draw();
+}
+
+/* ============================================================ *
+ *  CSV  import / export
+ * ============================================================ */
+function toCSV(rows, cols){
+  const head = cols.map(c=>c.key);
+  const esc2 = s=>{ s=String(s==null?"":s); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
+  const lines = [head.join(",")];
+  rows.forEach(r=>lines.push(cols.map(c=> esc2(c.type==="computed"?c.compute(r):r[c.key]) ).join(",")));
+  return lines.join("\n");
+}
+function parseCSV(text){
+  const rows=[]; let row=[], cur="", q=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(q){
+      if(ch==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; }
+      else cur+=ch;
+    } else {
+      if(ch==='"') q=true;
+      else if(ch===','){ row.push(cur); cur=""; }
+      else if(ch==='\n'){ row.push(cur); rows.push(row); row=[]; cur=""; }
+      else if(ch==='\r'){}
+      else cur+=ch;
+    }
+  }
+  if(cur!==""||row.length){ row.push(cur); rows.push(row); }
+  return rows.filter(r=>r.length && r.some(c=>c!==""));
+}
+function exportCSV(key){
+  const sc=SCHEMAS[key];
+  const blob=new Blob([toCSV(DB[key],sc.cols)],{type:"text/csv"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download="GZI_"+key+"_"+TODAY()+".csv"; a.click();
+  URL.revokeObjectURL(a.href);
+}
+function importCSV(key, after){
+  const sc=SCHEMAS[key];
+  const inp=document.createElement("input"); inp.type="file"; inp.accept=".csv,text/csv";
+  inp.onchange=()=>{
+    const file=inp.files[0]; if(!file) return;
+    const rd=new FileReader();
+    rd.onload=()=>{
+      const rows=parseCSV(rd.result);
+      if(rows.length<2){ alert("Nothing to import."); return; }
+      const head=rows[0].map(h=>h.trim());
+      const mode = confirm("OK = REPLACE all "+sc.label+" with the file.\nCancel = APPEND the file rows.");
+      const recs = rows.slice(1).map(r=>{
+        const o={id:uid()};
+        sc.cols.forEach(c=>{
+          const idx=head.indexOf(c.key);
+          if(idx>-1){ let v=r[idx]; if(c.type==="number"||c.type==="money") v=v===""?"":num(v); o[c.key]=v; }
+          else if(!(c.type==="computed")) o[c.key]=(c.type==="number"||c.type==="money")?0:"";
+        });
+        return o;
+      });
+      if(mode) DB[key]=recs; else DB[key]=DB[key].concat(recs);
+      // renumber sn / lineNo
+      if(sc.cols.some(c=>c.key==="sn")) DB[key].forEach((r,i)=>r.sn=i+1);
+      if(sc.cols.some(c=>c.key==="lineNo")) DB[key].forEach((r,i)=>r.lineNo=i+1);
+      save(); renderNav(); after&&after();
+      alert(recs.length+" row(s) imported.");
+    };
+    rd.readAsText(file);
+  };
+  inp.click();
+}
+
+/* ============================================================ *
+ *  PRINT
+ * ============================================================ */
+function doPrint(html){
+  const pa=document.getElementById("printArea");
+  pa.innerHTML=html;
+  window.print();
+}
+function printCollection(key){
+  const sc=SCHEMAS[key];
+  let rows=DB[key].slice();
+  if(sc.areaField && globalArea) rows=rows.filter(r=>r[sc.areaField]===globalArea);
+  const cols=sc.cols.filter(c=>!c.type||c.type!=="textarea").slice(0,12);
+  doPrint(`
+    <div class="ph"><div><h2>${esc(sc.label)}</h2><div>GZI SA · Technical Stores · ${esc(globalArea||"All areas")}</div></div><div>${TODAY()}</div></div>
+    <table><thead><tr>${cols.map(c=>`<th>${esc(c.label)}</th>`).join("")}</tr></thead>
+    <tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${esc(c.type==="computed"?(c.fmt?c.fmt(c.compute(r)):c.compute(r)):(r[c.key]==null?"":r[c.key]))}</td>`).join("")}</tr>`).join("")}</tbody></table>
+    <p>${rows.length} record(s)</p>`);
+}
+function printBinCard(code){
+  const it=findItem(code);
+  const moves=DB.movements.filter(m=>String(m.sapCode||"").toUpperCase()===code.toUpperCase()).slice().sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+  const net=moves.reduce((a,m)=>a+num(m.qtyIn)-num(m.qtyOut),0);
+  let bal = Object.prototype.hasOwnProperty.call(DB.binCardOpening,code) ? num(DB.binCardOpening[code]) : (it?num(it.qty)-net:0);
+  doPrint(`
+    <div class="ph"><div><h2>BIN CARD</h2><div>GZI SA · Technical Stores</div></div><div>${TODAY()}</div></div>
+    <table><tbody>
+      <tr><td><b>SAP Code</b></td><td>${esc(code)}</td><td><b>Description</b></td><td>${esc(it?it.description:"")}</td></tr>
+      <tr><td><b>Bin</b></td><td>${esc(it?it.bin:"")}</td><td><b>UOM</b></td><td>${esc(it?it.uom:"")}</td></tr>
+      <tr><td><b>Min / Max</b></td><td>${it?int(it.min)+" / "+int(it.max):""}</td><td><b>Opening balance</b></td><td>${int(bal)}</td></tr>
+    </tbody></table><br/>
+    <table><thead><tr><th>Date</th><th>Type</th><th>Doc</th><th>In</th><th>Out</th><th>Balance</th><th>By</th><th>Shift</th><th>Remarks</th></tr></thead>
+    <tbody>${moves.map(m=>{bal+=num(m.qtyIn)-num(m.qtyOut);return `<tr><td>${esc(m.date||"")}</td><td>${esc(m.type||"")}</td><td>${esc(m.docNo||"")}</td><td>${num(m.qtyIn)||""}</td><td>${num(m.qtyOut)||""}</td><td>${int(bal)}</td><td>${esc(m.onShift||"")}</td><td>${esc(m.shift||"")}</td><td>${esc(m.reason||m.remarks||"")}</td></tr>`;}).join("")}</tbody></table>`);
+}
+function printCount(c){
+  doPrint(`
+    <div class="ph"><div><h2>CYCLE COUNT SHEET</h2><div>GZI SA · Technical Stores · ${esc(c.area||"All areas")}</div></div><div>${esc(c.countDate)} · ${esc(c.weekNo||"")}</div></div>
+    <table><tbody><tr><td><b>Counter</b></td><td>${esc(c.counter||"")}</td><td><b>Month</b></td><td>${esc(c.month||"")}</td><td><b>Status</b></td><td>${esc(c.status||"")}</td></tr></tbody></table><br/>
+    <table><thead><tr><th>#</th><th>SAP Code</th><th>Description</th><th>Part No</th><th>UOM</th><th>Bin</th><th>Min</th><th>Max</th><th>System</th><th>Physical</th><th>Variance</th><th>Movement</th><th>Comments</th></tr></thead>
+    <tbody>${c.lines.map((l,i)=>`<tr><td>${i+1}</td><td>${esc(l.sapCode)}</td><td>${esc(l.description)}</td><td>${esc(l.partNo||"")}</td><td>${esc(l.uom||"")}</td><td>${esc(l.bin||"")}</td><td>${esc(l.min)}</td><td>${esc(l.max)}</td><td>${esc(l.system)}</td><td>${l.physical===""?"______":esc(l.physical)}</td><td>${l.physical===""?"":num(l.physical)-num(l.system)}</td><td>${esc(l.movementStatus||"")}</td><td>${esc(l.comments||"")}</td></tr>`).join("")}</tbody></table>
+    <p>${c.lines.length} line(s) &nbsp;•&nbsp; Counted by ____________________ &nbsp; Checked by ____________________ &nbsp; Date __________</p>`);
+}
+function printIVF(f){
+  const k=ivfKPI(f);
+  doPrint(`
+    <div class="ph"><div><h2>INVENTORY VERIFICATION FORM (IVF)</h2><div>GZI SA · Technical Stores</div></div><div>${esc(f.date)}</div></div>
+    <table><tbody>
+      <tr><td><b>Verified By</b></td><td>${esc(f.verifiedBy||"")}</td><td><b>Shift</b></td><td>${esc(f.shift||"")}</td><td><b>Signature</b></td><td>${esc(f.signature||"")}</td></tr>
+      <tr><td><b>Total Items</b></td><td>${k.total}</td><td><b>Accurate</b></td><td>${k.acc}</td><td><b>In-accurate</b></td><td>${k.inacc}</td></tr>
+      <tr><td><b>Compliance %</b></td><td>${k.pct}%</td><td><b>Empty Bins</b></td><td>${k.emptyBins}</td><td><b>PR / PO</b></td><td>${k.reorder}</td></tr>
+    </tbody></table><br/>
+    <table><thead><tr><th>#</th><th>Date</th><th>Material Code</th><th>Description</th><th>Min</th><th>Max</th><th>Movement Type</th><th>Location</th><th>Physical</th><th>SAP Qty</th><th>Variance</th><th>Re-order</th><th>Re-order Qty</th><th>Audit</th><th>Remarks</th></tr></thead>
+    <tbody>${f.lines.map((l,i)=>{const v=(l.physical===""?"":num(l.physical)-num(l.sapQty));const ro=(num(l.physical)<=num(l.min)&&(num(l.min)>0||num(l.max)>0))?"Yes":"No";return `<tr><td>${i+1}</td><td>${esc(l.date||f.date)}</td><td>${esc(l.materialCode||"")}</td><td>${esc(l.description||"")}</td><td>${esc(l.min)}</td><td>${esc(l.max)}</td><td>${esc(l.movementType||"")}</td><td>${esc(l.location||"")}</td><td>${esc(l.physical)}</td><td>${esc(l.sapQty)}</td><td>${v}</td><td>${ro}</td><td>${esc(l.reorderQty||"")}</td><td>${esc(l.txnAudit||"")}</td><td>${esc(l.remarks||"")}</td></tr>`;}).join("")}</tbody></table>`);
+}
+
+/* ============================================================ *
+ *  BACKUP / RESTORE / SEED
+ * ============================================================ */
+document.getElementById("btnBackup").onclick = ()=>{
+  const root=document.getElementById("modalRoot");
+  root.innerHTML=`<div class="modal-back"><div class="modal">
+    <h3>Backup / Restore</h3>
+    <div class="body">
+      <p class="hintline">Data lives in the shared GZI Stores Hub database. A JSON backup is still a good idea before big imports.</p>
+      <div class="flex">
+        <button class="btn" id="expJson">⬇ Export full backup (JSON)</button>
+        <button class="btn sec" id="impJson">⬆ Restore from backup</button>
+      </div>
+      <div class="sechead">Per-tracker CSV</div>
+      <div class="flex">${Object.keys(SCHEMAS).map(k=>`<button class="btn ghost sm" data-csv="${k}">${esc(SCHEMAS[k].label)}</button>`).join("")}</div>
+      <div class="sechead" style="color:var(--danger)">Danger</div>
+      <button class="btn danger sm" id="wipe">Erase ALL shared data</button>
+    </div>
+    <div class="foot"><button class="btn ghost" id="close">Close</button>
+      <span class="right mini">Records: ${Object.keys(SCHEMAS).reduce((a,k)=>a+(DB[k]?.length||0),0)}</span></div>
+  </div></div>`;
+  root.querySelector("#close").onclick=closeModal;
+  root.querySelector(".modal-back").onclick=e=>{ if(e.target.classList.contains("modal-back")) closeModal(); };
+  root.querySelector("#expJson").onclick=()=>{
+    const blob=new Blob([JSON.stringify(DB,null,2)],{type:"application/json"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+    a.download="GZI_StoresHub_backup_"+TODAY()+".json"; a.click(); URL.revokeObjectURL(a.href);
+  };
+  root.querySelector("#impJson").onclick=()=>{
+    const inp=document.createElement("input"); inp.type="file"; inp.accept=".json";
+    inp.onchange=()=>{ const fr=new FileReader(); fr.onload=()=>{
+      try{ const d=JSON.parse(fr.result);
+        if(!confirm("Replace ALL data in the SHARED database with this backup? Everyone will see this change."))return;
+        DB=Object.assign(blank(),d); save(); closeModal(); renderNav(); renderRoute(); fillGlobalArea();
+        alert("Backup restored to the shared database.");
+      }catch(e){ alert("Invalid file: "+e.message); }
+    }; fr.readAsText(inp.files[0]); };
+    inp.click();
+  };
+  root.querySelectorAll("[data-csv]").forEach(b=>b.onclick=()=>exportCSV(b.dataset.csv));
+  root.querySelector("#wipe").onclick=()=>{
+    if(confirm("Erase ALL data in the SHARED database? Every user loses everything. This cannot be undone.") && confirm("Really erase every tracker for everyone?")){
+      DB=blank(); save(); closeModal(); renderNav(); renderRoute(); fillGlobalArea();
+    }
+  };
+};
+document.getElementById("btnSeed").onclick = ()=>{
+  const has = Object.keys(SCHEMAS).some(k=>DB[k]&&DB[k].length);
+  if(has && !confirm("This REPLACES the shared data with the built-in sample set (based on the source trackers). Continue?")) return;
+  DB = seedData(); save(); globalArea=""; renderNav(); fillGlobalArea(); renderRoute();
+};
+
+/* ============================================================ *
+ *  AUTH GATE + BOOT
+ * ============================================================ */
+const AUTH_USER = "Admin", AUTH_PASS = "Admin";
+function startApp(){
+  document.body.classList.add("authed");
+  document.getElementById("globalArea").addEventListener("change",e=>{ globalArea=e.target.value; renderRoute(); });
+  document.getElementById("btnRefresh").onclick = async ()=>{
+    if(document.getElementById("modalRoot").innerHTML.trim()){ toast("Close the open dialog first."); return; }
+    try{ await pullAll(); renderNav(); fillGlobalArea(); renderRoute(); }
+    catch(e){ setSync("err"); toast("Refresh failed: "+e.message); }
+  };
+  document.getElementById("btnLogout").onclick = ()=>{
+    sessionStorage.removeItem("shb_auth"); location.reload();
+  };
+  window.addEventListener("focus", ()=>{
+    if(document.getElementById("modalRoot").innerHTML.trim()) return;
+    pullAll().then(()=>{ renderNav(); fillGlobalArea(); renderRoute(); }).catch(()=>setSync("err"));
+  });
+
+  const app = document.getElementById("app");
+  app.innerHTML = `<div class="empty">Loading the shared database…</div>`;
+  pullAll().then(()=>{
+    renderNav(); fillGlobalArea(); renderRoute();
+  }).catch(e=>{
+    setSync("err");
+    app.innerHTML = `<div class="empty">Could not reach the database.<br><br>${esc(e.message)}<br><br>
+      <button class="btn" onclick="location.reload()">Retry</button></div>`;
+  });
+}
+(function initAuth(){
+  const form = document.getElementById("loginForm");
+  const err = document.getElementById("lg_err");
+  if(sessionStorage.getItem("shb_auth")==="1"){ startApp(); return; }
+  form.addEventListener("submit", e=>{
+    e.preventDefault();
+    const u = document.getElementById("lg_user").value.trim();
+    const p = document.getElementById("lg_pass").value;
+    if(u===AUTH_USER && p===AUTH_PASS){ sessionStorage.setItem("shb_auth","1"); startApp(); }
+    else { err.textContent = "Wrong username or password."; }
+  });
+})();
+</script>
+</body>
+</html>
