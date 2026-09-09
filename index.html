@@ -121,7 +121,7 @@
   .login-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.35);width:min(360px,100%);padding:26px 24px}
   .login-card h2{margin:0 0 2px;font-size:17px}
   .login-card label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-top:14px}
-  .login-card input{width:100%;margin-top:5px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;color:var(--ink);font:inherit}
+  .login-card input,.login-card select{width:100%;margin-top:5px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;color:var(--ink);font:inherit}
   .login-card .btn{width:100%;margin-top:18px;padding:10px}
   .lg-err{color:var(--danger);font-size:12.5px;min-height:16px;margin-top:8px}
   body.authed #loginGate{display:none}
@@ -151,6 +151,7 @@
     <select id="globalArea"><option value="">All areas</option></select>
   </div>
   <span class="spacer"></span>
+  <span id="roleTag" class="sub" title="Your role this session"></span>
   <span id="syncDot" class="syncdot" title="Sync status">●</span>
   <button class="headbtn" id="btnRefresh" title="Reload latest data from the server">↻ Refresh</button>
   <button class="headbtn" id="btnBackup">Backup / Restore</button>
@@ -172,6 +173,14 @@
     <p class="mini">Sign in to the shared stores database.</p>
     <label>Username<input id="lg_user" autocomplete="username" autofocus></label>
     <label>Password<input id="lg_pass" type="password" autocomplete="current-password"></label>
+    <label>Your role<select id="lg_role">
+      <option value="Counter">Counter</option>
+      <option value="Storeman">Storeman</option>
+      <option value="Store Controller">Store Controller</option>
+      <option value="Supervisor">Supervisor</option>
+      <option value="Manager">Manager</option>
+    </select></label>
+    <p class="mini" style="margin-top:6px">Only a Supervisor or Manager can delete count records.</p>
     <div id="lg_err" class="lg-err"></div>
     <button class="btn" type="submit">Sign in</button>
     <p class="mini" style="margin-top:10px">Online system — needs a connection. Data is shared by everyone who signs in.</p>
@@ -201,6 +210,7 @@ const GROUPS = ["SP01 - Electrical","SP02 - Mechanical","SP03 - Other Spares"];
 const SHIFTS = ["A","B","C","D","Day","Night","A - Day","A - Night","B - Day","B - Night","C - Day","C - Night","D - Day","D - Night"];
 const MOVE_TYPES = ["Issue","Reverse Issue","Inventory Receipt","Reverse-PO","Inter-Branch Transfer","Inbound Transfer","Outbound Transfer","Adjustment","Return","Scrap","Other"];
 const STOCK_STATUS = ["Active spare","Non Mover","No movement","Obsolete","Use Up"];
+const INV_TYPES = ["SP01 - Electrical","SP02 - Mechanical","SP03 - Other Spares","Consumable","Rotable","Tool","Chemical","Lubricant"];
 
 /* ---------- default (sample) data derived from the source trackers ---------- */
 function seedData(){
@@ -316,13 +326,19 @@ function seedData(){
     ]
   }];
 
-  const counts = [{
-    id:uid(), countDate:"2026-06-19", weekNo:"Wk 25", month:"Jun 2026", counter:"Erasmus Nchabeleng", area:"Bailer Store", status:"Draft",
-    lines:[
-      {id:uid(),sapCode:"BA-000001",description:"FILTER ELEMENT FOR PI0153",partNo:"03-0025",uom:"PC",bin:"MS.BA.1.1.2.07",min:1,max:2,system:2,physical:2,movementStatus:"Active spare",counted:"Y",comments:""},
-      {id:uid(),sapCode:"BA-000012",description:"FILTER ELEMENT 25MIC",partNo:"03-0010",uom:"PC",bin:"MS.BA.11306",min:1,max:2,system:2,physical:2,movementStatus:"Active spare",counted:"Y",comments:""},
-    ]
-  }];
+  const counts = [
+    ["2026-06-19","BA-000001","Erasmus Nchabeleng",2,2,2,""],
+    ["2026-06-19","BA-000012","Erasmus Nchabeleng",2,2,2,""],
+    ["2026-06-19","DC-000330","Robert Mathebula",27,29,29,"2 pcs short on the shelf"],
+  ].map(r=>{
+    const it = inv.find(i=>i.sapCode===r[1]) || {};
+    return {
+      id:uid(), countDate:r[0], week:weekOf(r[0]), month:monthOf(r[0]),
+      sapCode:r[1], description:it.description||"", partNo:it.mpn||"", uom:it.uom||"PC",
+      invType:it.group||"", counter:r[2], machine:it.machine||"",
+      counted:r[3], sapQty:r[4], systemQty:r[5], remarks:r[6]
+    };
+  });
 
   return {
     branches, machines, areas, staff, bins, inventory:inv, interbranch,
@@ -548,6 +564,32 @@ const SCHEMAS = {
       F("remarks","Remarks","textarea"),
     ]
   },
+  counts:{
+    label:"Inventory Count Tracker", icon:"🧮", singular:"count record", areaField:null,
+    cols:[
+      F("countDate","Count Date","date",{req:true}),
+      F("week","Week","text"),
+      F("month","Month","text"),
+      F("sapCode","Material Code","lookup",{req:true,options:()=>DB.inventory.map(i=>i.sapCode)}),
+      F("description","Description","text",{grow:1}),
+      F("partNo","Part No","text"),
+      F("uom","UOM","select",{options:()=>UOMS}),
+      F("bin","Bin Location","text"),
+      F("invType","Inventory Type","lookup",{options:()=>INV_TYPES}),
+      F("movementStatus","Movement Status","select",{options:()=>STOCK_STATUS}),
+      F("counter","Counter","select",{options:staffNames}),
+      F("machine","Machine","select",{options:machineNames}),
+      F("counted","Counted","number"),
+      F("sapQty","SAP Quantity","number"),
+      F("systemQty","System Quantity","number"),
+      F("variance","Variance","computed",{compute:r=>(r.counted===""||r.counted==null)?"":num(r.counted)-num(r.sapQty),pill:v=>v===""?"mut":num(v)===0?"ok":"bad",tableOnly:true}),
+      F("status","Status","computed",{compute:r=>countStatus(r),pill:v=>(v==="Counted"||v==="Resolved")?"ok":v==="Variance"?"bad":"warn",tableOnly:true}),
+      F("resolved","Variance Resolved","select",{options:()=>["","Yes"]}),
+      F("resolvedOn","Resolved On","date"),
+      F("resolutionRemarks","Resolution Note","textarea",{grow:1}),
+      F("remarks","Remarks","textarea",{grow:1}),
+    ]
+  },
   variances:{
     label:"Variance Report", icon:"⚠️", singular:"variance", areaField:null,
     cols:[
@@ -694,7 +736,8 @@ const NAV = [
   {grp:"Stock control", items:[
     ["inventory","Inventory — all areas","📦"],
     ["bins","Bin Locations","🗄️"],
-    ["counts","Counting Sheets","🧮"],
+    ["counts","Inventory Count Tracker","🧮"],
+    ["countsummary","Count Summary","📈"],
     ["variances","Variance Report","⚠️"],
     ["ivfs","IVF — Verification Form","✅"],
   ]},
@@ -759,6 +802,7 @@ function renderRoute(){
   if(route==="dashboard") return renderDashboard(app);
   if(route==="bincard") return renderBinCard(app);
   if(route==="counts") return renderCounts(app);
+  if(route==="countsummary") return renderCountSummary(app);
   if(route==="ivfs") return renderIVFs(app);
   return renderCollection(app, route);
 }
@@ -813,7 +857,7 @@ function renderCollection(app, key){
     if(!rows.length){ tw.innerHTML = `<div class="empty">No records. Click “+ New ${esc(sc.singular)}” or Import CSV.</div>`; }
     else{
       tw.innerHTML = `<table class="grid"><thead><tr>${cols.map(c=>`<th data-c="${c.key}">${esc(c.label)}${sortState[key]&&sortState[key].col===c.key?(sortState[key].dir==="desc"?" ▾":" ▴"):""}</th>`).join("")}<th></th></tr></thead>
-        <tbody>${rows.map(r=>`<tr data-id="${r.id}">${cols.map(c=>cellHTML(c,r)).join("")}<td class="no-print"><button class="btn danger sm" data-del="${r.id}">✕</button></td></tr>`).join("")}</tbody></table>`;
+        <tbody>${rows.map(r=>`<tr data-id="${r.id}">${cols.map(c=>cellHTML(c,r)).join("")}<td class="no-print">${(key==="counts" && !canDeleteCounts())?`<span class="mini" title="Supervisor or Manager only">🔒</span>`:`<button class="btn danger sm" data-del="${r.id}">✕</button>`}</td></tr>`).join("")}</tbody></table>`;
       tw.querySelectorAll("th[data-c]").forEach(th=>th.onclick=()=>{
         const c=th.dataset.c; const s=sortState[key];
         sortState[key]= s&&s.col===c ? {col:c,dir:s.dir==="asc"?"desc":"asc"} : {col:c,dir:"asc"};
@@ -825,6 +869,7 @@ function renderCollection(app, key){
       });
       tw.querySelectorAll("[data-del]").forEach(b=>b.onclick=e=>{
         e.stopPropagation();
+        if(key==="counts" && !canDeleteCounts()){ alert("Only a Supervisor or Manager can delete a count record.\nYou are signed in as: "+currentRole()); return; }
         if(confirm("Delete this record?")){ DB[key]=DB[key].filter(x=>x.id!==b.dataset.del); save(); renderNav(); draw(); drawSummary(); }
       });
     }
@@ -850,6 +895,7 @@ function collDesc(key){
   return ({
     inventory:"Full item register across every store and branch. Click a row to edit. Re-order and Over-Max flags are calculated from Min / Max.",
     bins:"Every bin location with the items and quantity it holds.",
+    counts:"One row per material counted. Week, Month, Description, Part No, UOM, Machine and Inventory Type pre-fill when you pick a Material Code. Variance = Counted − SAP Quantity; Status shows “Counted” when they match, otherwise “Variance”. Only a Supervisor or Manager can delete a row.",
     movements:"Every stock transaction. Saving a movement updates the item’s On-Hand quantity and feeds the Bin Card.",
     variances:"Consolidated count differences from cycle counts, IVFs and spot checks — value and status.",
     interbranch:"Transfers between GZI SA, Agbara, Aba and Kenya with value roll-up per route.",
@@ -901,7 +947,7 @@ function openForm(key, rec){
         <div class="foot">
           <button class="btn" id="save">Save</button>
           <button class="btn ghost" id="cancel">Cancel</button>
-          ${!isNew?`<button class="btn danger right" id="del">Delete</button>`:""}
+          ${(!isNew && !(key==="counts" && !canDeleteCounts()))?`<button class="btn danger right" id="del">Delete</button>`:""}
         </div>
       </div>
     </div>`;
@@ -937,18 +983,33 @@ function openForm(key, rec){
       const it = findItem(codeField.value);
       if(!it) return;
       const map = {description:"description",machine:"machine",area:"area",bin:"bin",unitCost:"unitCost",
-        partNo:"mpn",min:"min",max:"max",uom:"uom"};
+        partNo:"mpn",min:"min",max:"max",uom:"uom",movementStatus:"status"};
       Object.entries(map).forEach(([f,src])=>{
         const el = fg.querySelector("#f_"+f);
         if(el && !el.value) el.value = it[src]==null?"":it[src];
       });
       const bs = fg.querySelector("#f_balanceSap"); if(bs && !bs.value) bs.value = it.qty;
       const sy = fg.querySelector("#f_system"); if(sy && !sy.value) sy.value = it.qty;
+      const sq = fg.querySelector("#f_sapQty"); if(sq && !sq.value) sq.value = it.qty;
+      const syq = fg.querySelector("#f_systemQty"); if(syq && !syq.value) syq.value = it.qty;
+      const ivt = fg.querySelector("#f_invType"); if(ivt && !ivt.value) ivt.value = it.group==null?"":it.group;
       updatePrev();
     };
     codeField.addEventListener("change", fill);
     codeField.addEventListener("blur", fill);
   }
+
+  // Inventory Count Tracker: keep Week / Month in step with Count Date
+  if(key==="counts"){
+    const dref=fg.querySelector("#f_countDate"), wref=fg.querySelector("#f_week"), mref=fg.querySelector("#f_month");
+    if(dref){
+      const sync=()=>{ if(wref) wref.value=weekOf(dref.value); if(mref) mref.value=monthOf(dref.value); };
+      dref.addEventListener("change",sync);
+      if(isNew && !dref.value){ dref.value=TODAY(); sync(); }
+      else if(isNew){ sync(); }
+    }
+  }
+
   function updatePrev(){
     if(!sc.posts) return;
     const it = findItem(fg.querySelector("#f_sapCode")?.value);
@@ -962,6 +1023,7 @@ function openForm(key, rec){
   root.querySelector("#cancel").onclick = closeModal;
   root.querySelector(".modal-back").onclick = e=>{ if(e.target.classList.contains("modal-back")) closeModal(); };
   if(root.querySelector("#del")) root.querySelector("#del").onclick = ()=>{
+    if(key==="counts" && !canDeleteCounts()){ alert("Only a Supervisor or Manager can delete a count record.\nYou are signed in as: "+currentRole()); return; }
     if(confirm("Delete this record?")){ DB[key]=DB[key].filter(x=>x.id!==rec.id); save(); closeModal(); renderNav(); renderRoute(); }
   };
   root.querySelector("#save").onclick = ()=>{
@@ -1009,6 +1071,7 @@ function defaultRecord(key){
   if(key==="interbranch"){ o.fromPlant="GZI SA"; o.status="Pending"; o.week=weekOf(TODAY()); }
   if(key==="daily"){ o.status="Open"; }
   if(key==="bins" && globalArea) o.area=globalArea;
+  if(key==="counts"){ o.week=weekOf(TODAY()); o.month=monthOf(TODAY()); o.counted=""; o.sapQty=""; o.systemQty=""; }
   return o;
 }
 function closeModal(){ document.getElementById("modalRoot").innerHTML=""; }
@@ -1188,124 +1251,408 @@ function renderBinCard(app){
 }
 
 /* ============================================================ *
- *  COUNTING SHEETS  (parent + editable lines)
+ *  INVENTORY COUNT TRACKER  (flat register — friendly view)
  * ============================================================ */
-function renderCounts(app){
-  app.innerHTML = `
-    <div class="page-h"><h2>🧮 Counting Sheets</h2><p>Cycle-count sheets by area. Generate lines from the register, capture the physical count, then post to update stock and raise variances.</p></div>
-    <div class="toolbar"><button class="btn" id="new">+ New count sheet</button><span class="count">${DB.counts.length} sheet(s)</span></div>
-    <div class="panel"><div class="tablewrap"><table class="grid">
-      <thead><tr><th>Count Date</th><th>Week</th><th>Month</th><th>Counter</th><th>Area</th><th class="num">Lines</th><th class="num">Counted</th><th class="num">Variances</th><th>Status</th></tr></thead>
-      <tbody>${DB.counts.length?DB.counts.map(c=>{
-        const counted=c.lines.filter(l=>/^y/i.test(l.counted||"")||l.physical!=="").length;
-        const varn=c.lines.filter(l=>num(l.physical)-num(l.system)!==0).length;
-        return `<tr data-id="${c.id}"><td>${esc(c.countDate)}</td><td>${esc(c.weekNo||weekOf(c.countDate))}</td><td>${esc(c.month||monthOf(c.countDate))}</td><td>${esc(c.counter||"")}</td><td>${esc(c.area||"")}</td><td class="num">${c.lines.length}</td><td class="num">${counted}</td><td class="num">${varn}</td><td><span class="pill ${statusPill(c.status)}">${esc(c.status||"Draft")}</span></td></tr>`;
-      }).join(""):`<tr><td colspan="9" class="empty">No count sheets yet.</td></tr>`}</tbody>
-    </table></div></div>`;
-  app.querySelector("#new").onclick=()=>{
-    const c={id:uid(),countDate:TODAY(),weekNo:weekOf(TODAY()),month:monthOf(TODAY()),counter:"",area:globalArea||"",status:"Draft",lines:[]};
-    DB.counts.push(c); save(); editCount(c.id);
-  };
-  app.querySelectorAll("tbody tr[data-id]").forEach(tr=>tr.onclick=()=>editCount(tr.dataset.id));
+let countsUI = { week:"", machine:"", statusFilter:"", q:"" };
+
+function isResolved(r){ return r.resolved===true || /^(y|yes|true|1|resolved)$/i.test(String(r.resolved||"")); }
+function countStatus(r){
+  if(r.counted===""||r.counted==null) return "Pending";
+  if(num(r.counted)===num(r.sapQty)) return "Counted";
+  return isResolved(r) ? "Resolved" : "Variance";   // a variance is NOT "counted" until it is resolved
 }
-function editCount(id){
-  const c = DB.counts.find(x=>x.id===id);
-  const app = document.getElementById("app");
-  const draw = ()=>{
-    app.innerHTML = `
-      <div class="page-h"><h2>🧮 Count sheet</h2><p>${esc(c.area||"All areas")} · ${esc(c.month||"")}</p></div>
-      <div class="toolbar no-print">
-        <button class="btn sec sm" id="back">← All sheets</button>
-        <button class="btn sm" id="gen">Generate lines from register</button>
-        <button class="btn sm" id="addl">+ Blank line</button>
-        <button class="btn sm" id="post">Post counts → stock & variances</button>
-        <button class="btn ghost sm" id="prn">Print</button>
-        <button class="btn danger sm right" id="delc">Delete sheet</button>
-      </div>
-      <div class="panel" style="padding:14px;margin-bottom:12px"><div class="formgrid">
-        <div class="fld"><label>Count Date</label><input type="date" id="h_date" value="${esc(c.countDate)}"></div>
-        <div class="fld"><label>Week No</label><input id="h_week" value="${esc(c.weekNo||"")}"></div>
-        <div class="fld"><label>Month</label><input id="h_month" value="${esc(c.month||"")}"></div>
-        <div class="fld"><label>Counter</label><select id="h_counter"><option value=""></option>${staffNames().map(s=>`<option ${s===c.counter?"selected":""}>${esc(s)}</option>`).join("")}</select></div>
-        <div class="fld"><label>Area</label><select id="h_area"><option value=""></option>${areaNames().map(a=>`<option ${a===c.area?"selected":""}>${esc(a)}</option>`).join("")}</select></div>
-        <div class="fld"><label>Status</label><select id="h_status">${["Draft","Counting","Posted"].map(s=>`<option ${s===c.status?"selected":""}>${esc(s)}</option>`).join("")}</select></div>
-      </div></div>
-      <div class="panel"><div class="tablewrap"><table class="subgrid" id="lines">
-        <thead><tr><th>#</th><th>SAP Code</th><th>Description</th><th>Part No</th><th>UOM</th><th>Bin</th><th>Min</th><th>Max</th><th>System</th><th>Physical</th><th>Variance</th><th>Movement Status</th><th>Counted</th><th>Comments</th><th></th></tr></thead>
-        <tbody></tbody>
-      </table></div></div>
-      <p class="mini">Variance = Physical − System. Posting updates the item’s On-Hand to the physical count, writes an Adjustment movement, and adds a row to the Variance Report for every non-zero line.</p>`;
-    const tb = app.querySelector("#lines tbody");
-    c.lines.forEach((l,idx)=>{
-      const tr=document.createElement("tr");
-      const v=num(l.physical)-num(l.system);
-      tr.innerHTML = `
-        <td>${idx+1}</td>
-        <td><input value="${esc(l.sapCode||"")}" data-k="sapCode" list="allcodes2"></td>
-        <td><input value="${esc(l.description||"")}" data-k="description"></td>
-        <td><input value="${esc(l.partNo||"")}" data-k="partNo"></td>
-        <td><input value="${esc(l.uom||"")}" data-k="uom" style="width:60px"></td>
-        <td><input value="${esc(l.bin||"")}" data-k="bin"></td>
-        <td><input class="num" type="number" value="${esc(l.min)}" data-k="min" style="width:60px"></td>
-        <td><input class="num" type="number" value="${esc(l.max)}" data-k="max" style="width:60px"></td>
-        <td><input class="num" type="number" value="${esc(l.system)}" data-k="system" style="width:70px"></td>
-        <td><input class="num" type="number" value="${esc(l.physical)}" data-k="physical" style="width:70px"></td>
-        <td class="num" style="${v!==0?'color:var(--danger);font-weight:700':''}">${v}</td>
-        <td><select data-k="movementStatus"><option value=""></option>${STOCK_STATUS.map(s=>`<option ${s===l.movementStatus?"selected":""}>${esc(s)}</option>`).join("")}</select></td>
-        <td><select data-k="counted" style="width:60px"><option ${/^y/i.test(l.counted||"")?"selected":""}>Y</option><option ${!/^y/i.test(l.counted||"")?"selected":""}>N</option></select></td>
-        <td><input value="${esc(l.comments||"")}" data-k="comments"></td>
-        <td><button class="rowdel" title="remove">✕</button></td>`;
-      tr.querySelectorAll("[data-k]").forEach(el=>el.addEventListener("input",()=>{
-        l[el.dataset.k] = (el.type==="number")? (el.value===""?"":num(el.value)) : el.value;
-        if(el.dataset.k==="sapCode"){ const it=findItem(el.value); if(it){ l.description=it.description;l.partNo=it.mpn;l.uom=it.uom;l.bin=it.bin;l.min=it.min;l.max=it.max;l.system=it.qty; save(); draw(); } }
-        save();
-        const vc = tr.children[10]; const nv=num(l.physical)-num(l.system);
-        vc.textContent=nv; vc.style.cssText = nv!==0?'color:var(--danger);font-weight:700':'';
-      }));
-      tr.querySelector(".rowdel").onclick=()=>{ c.lines.splice(idx,1); save(); draw(); };
-      tb.appendChild(tr);
-    });
-    if(!app.querySelector("#allcodes2")){
-      app.insertAdjacentHTML("beforeend",`<datalist id="allcodes2">${DB.inventory.map(i=>`<option value="${esc(i.sapCode)}">${esc(i.description)}</option>`).join("")}</datalist>`);
-    }
-    const bind=(sel,prop,isSel)=>{ const el=app.querySelector(sel); el.addEventListener("input",()=>{ c[prop]=el.value; save(); }); };
-    bind("#h_date","countDate");bind("#h_week","weekNo");bind("#h_month","month");
-    bind("#h_counter","counter");bind("#h_area","area");bind("#h_status","status");
-    app.querySelector("#back").onclick=()=>renderCounts(app);
-    app.querySelector("#addl").onclick=()=>{ c.lines.push({id:uid(),sapCode:"",description:"",partNo:"",uom:"",bin:"",min:"",max:"",system:"",physical:"",movementStatus:"",counted:"N",comments:""}); save(); draw(); };
-    app.querySelector("#gen").onclick=()=>{
-      let pool = DB.inventory.slice();
-      if(c.area) pool = pool.filter(i=>i.area===c.area);
-      if(!pool.length){ alert("No register items"+(c.area?" in "+c.area:"")+"."); return; }
-      const have = new Set(c.lines.map(l=>l.sapCode));
-      pool.forEach(i=>{ if(have.has(i.sapCode)) return;
-        c.lines.push({id:uid(),sapCode:i.sapCode,description:i.description,partNo:i.mpn,uom:i.uom,bin:i.bin,min:i.min,max:i.max,system:i.qty,physical:"",movementStatus:i.status,counted:"N",comments:""});
-      });
-      save(); draw();
-    };
-    app.querySelector("#delc").onclick=()=>{ if(confirm("Delete this count sheet?")){ DB.counts=DB.counts.filter(x=>x.id!==c.id); save(); renderNav(); renderCounts(app); } };
-    app.querySelector("#prn").onclick=()=>printCount(c);
-    app.querySelector("#post").onclick=()=>{
-      const changed = c.lines.filter(l=>l.physical!=="" && num(l.physical)-num(l.system)!==0);
-      if(!changed.length && !confirm("No variances to post. Still mark sheet Posted?")) return;
-      changed.forEach(l=>{
-        const before = num(l.system), after = num(l.physical), delta = after-before;
-        const it = findItem(l.sapCode);
-        const uc = it?num(it.unitCost):0;
-        DB.movements.push({id:uid(),lineNo:(DB.movements.reduce((m,r)=>Math.max(m,num(r.lineNo)),0)||0)+1,
-          date:c.countDate,sapCode:l.sapCode,description:l.description,machine:it?it.machine:"",area:c.area,bin:l.bin,
-          type:"Adjustment",qtyIn:delta>0?delta:0,qtyOut:delta<0?-delta:0,balance:after,balanceSap:after,
-          docNo:"CYCLE COUNT "+(c.weekNo||c.countDate),onShift:c.counter,shift:"",reason:"Cycle count adjustment",remarks:l.comments||""});
-        if(it){ it.qty = after; it.updatedAt=TODAY(); }
-        DB.variances.push({id:uid(),date:c.countDate,source:"Cycle Count",sapCode:l.sapCode,description:l.description,bin:l.bin,
-          physical:after,system:before,unitCost:uc,reason:"Under investigation",status:"Open",raisedBy:c.counter,remarks:"From count "+(c.weekNo||c.countDate)});
-      });
-      c.status="Posted"; save(); renderNav();
-      alert(`Posted. ${changed.length} adjustment(s) written to stock, movements and the Variance Report.`);
-      draw();
-    };
+function countVariance(r){
+  return (r.counted===""||r.counted==null) ? "" : num(r.counted)-num(r.sapQty);
+}
+function stPillClass(st){ return (st==="Counted"||st==="Resolved")?"ok":st==="Variance"?"bad":"warn"; }
+
+/* Aggregate a set of count rows for the summary sheet / KPIs.
+   counted  = exact matches + resolved variances (what may be reported as done)
+   outstanding = still to count + unresolved variances
+   accuracy = physical matched the system first time (resolved still counts as a miss) */
+function countStats(rows){
+  let exact=0,resolved=0,pending=0,variance=0;
+  rows.forEach(r=>{
+    const st=countStatus(r);
+    if(st==="Counted") exact++;
+    else if(st==="Resolved") resolved++;
+    else if(st==="Variance") variance++;
+    else pending++;
+  });
+  const total=rows.length, counted=exact+resolved, outstanding=pending+variance, attempted=exact+resolved+variance;
+  return { total,exact,resolved,pending,variance,counted,outstanding,attempted,
+    pctCounted: total?Math.round(counted/total*100):0,
+    accuracy: attempted?Math.round(exact/attempted*100):0 };
+}
+function resolveCellHTML(r){
+  const st=countStatus(r);
+  if(st==="Variance"||st==="Resolved")
+    return `<label class="mini" style="white-space:nowrap"><input type="checkbox" data-k="resolved" ${isResolved(r)?"checked":""}> ${isResolved(r)?esc(r.resolvedOn||"yes"):"resolve"}</label>`;
+  return `<span class="mini">—</span>`;
+}
+/* period bucketing for the summary sheet */
+function csGrainLabel(g){ return {day:"Day",week:"Week",month:"Month",year:"Year"}[g]||"Period"; }
+function mondayOf(d){ const dt=new Date(String(d).slice(0,10)+"T00:00:00"); if(isNaN(dt)) return String(d||""); const off=(dt.getDay()+6)%7; dt.setDate(dt.getDate()-off); return dt.toISOString().slice(0,10); }
+function csBucket(r,grain){
+  const d=String(r.countDate||"").slice(0,10);
+  if(!d) return {key:"",label:"(no date)"};
+  if(grain==="day")  return {key:d,label:d};
+  if(grain==="week") { const m=mondayOf(d); return {key:m,label:"Wk of "+m}; }
+  if(grain==="year") return {key:d.slice(0,4),label:d.slice(0,4)};
+  return {key:d.slice(0,7),label:monthOf(d)};
+}
+
+function renderCounts(app){
+  const canDel = canDeleteCounts();
+  const weeks = [...new Set(DB.counts.map(r=>r.week).filter(Boolean))].sort();
+
+  app.innerHTML = `
+    <div class="page-h"><h2>🧮 Inventory Count Tracker</h2>
+      <p>One row per item counted. Pick a Material Code and Description, Part No, UOM, Bin, Inventory Type, Movement Status and SAP quantity fill in from the register — then type the Counted quantity. Status turns <b>green</b> when it matches the SAP quantity, <b>red</b> when it does not. A red <b>Variance</b> is <b>not</b> reported as counted until you tick <b>Resolved</b> on that row. Roll-ups by day / week / month / year and per machine are on the <b>Count Summary</b> sheet.</p></div>
+
+    <div class="cards" id="kpis"></div>
+
+    <div class="toolbar no-print">
+      <button class="btn" id="additem">＋ Add item</button>
+      <button class="btn sm" id="fillreg">Add items from register…</button>
+      <button class="btn sec sm" id="imp">Import CSV</button>
+      <button class="btn sec sm" id="exp">Export CSV</button>
+      <button class="btn ghost sm" id="prn">Print count sheet</button>
+      <span class="count" id="cnt"></span>
+    </div>
+
+    <div class="toolbar no-print">
+      <select id="f_week"><option value="">All weeks</option>${weeks.map(w=>`<option ${w===countsUI.week?"selected":""}>${esc(w)}</option>`).join("")}</select>
+      <select id="f_machine"><option value="">All machines</option>${machineNames().map(m=>`<option ${m===countsUI.machine?"selected":""}>${esc(m)}</option>`).join("")}</select>
+      <span id="f_status">
+        <button class="btn ghost sm" data-s="">All</button>
+        <button class="btn ghost sm" data-s="Pending">To count</button>
+        <button class="btn ghost sm" data-s="Counted">Counted</button>
+        <button class="btn ghost sm" data-s="Variance">Variance</button>
+      </span>
+      <input type="search" id="f_q" placeholder="Search code / description…" value="${esc(countsUI.q)}"/>
+    </div>
+
+    <div class="panel"><div class="tablewrap" id="tw"></div></div>
+    <p class="mini">Variance = Counted − SAP Quantity. Count Date, Material Code, Counter, Machine, Counted, SAP Qty, System Qty and Remarks are typed straight into the table; Week and Month follow the Count Date; ✎ opens the full record. ${canDel?"You can delete rows." : "Deleting needs a Supervisor or Manager — signed in as “"+esc(currentRole())+"”."}</p>
+    <datalist id="ct_codes">${DB.inventory.map(i=>`<option value="${esc(i.sapCode)}">${esc(i.description||"")}</option>`).join("")}</datalist>
+  `;
+
+  const markSeg = ()=> app.querySelectorAll("#f_status [data-s]").forEach(b=>{
+    const on=b.dataset.s===countsUI.statusFilter;
+    b.classList.toggle("sec",on); b.classList.toggle("ghost",!on);
+  });
+  markSeg();
+
+  const scoped = ()=>{
+    let rows = DB.counts.slice();
+    if(countsUI.week)    rows = rows.filter(r=>r.week===countsUI.week);
+    if(countsUI.machine) rows = rows.filter(r=>r.machine===countsUI.machine);
+    return rows;
   };
-  draw();
+  const visible = ()=>{
+    let rows = scoped();
+    if(countsUI.statusFilter) rows = rows.filter(r=>countStatus(r)===countsUI.statusFilter);
+    const q=countsUI.q.trim().toLowerCase();
+    if(q) rows = rows.filter(r=>[r.sapCode,r.description,r.partNo,r.counter,r.machine,r.remarks].some(v=>String(v||"").toLowerCase().includes(q)));
+    rows.sort((a,b)=>String(b.countDate||"").localeCompare(String(a.countDate||"")));
+    return rows;
+  };
+
+  const drawKPIs = ()=>{
+    const s = countStats(scoped());
+    app.querySelector("#kpis").innerHTML =
+      kpi("Items", s.total, (countsUI.week||countsUI.machine)?"in view":"") +
+      kpi("To count", s.outstanding, `${s.pending} new · ${s.variance} open variance`, s.outstanding?"warn":"ok") +
+      kpi("Counted", s.counted, s.resolved?`incl. ${s.resolved} resolved`:"matches SAP", "ok") +
+      kpi("Open variance", s.variance, "resolve before it counts", s.variance?"bad":"ok") +
+      kpi("Accuracy", (s.attempted?s.accuracy+"%":"—"), s.attempted?`${s.exact}/${s.attempted} right first time`:"—", s.accuracy>=95?"ok":s.accuracy>=80?"warn":"bad");
+  };
+
+  const drawTable = ()=>{
+    const rows = visible();
+    app.querySelector("#cnt").textContent = `${rows.length} of ${DB.counts.length}`;
+    const tw = app.querySelector("#tw");
+    if(!DB.counts.length){
+      tw.innerHTML = `<div class="empty">No items yet.<br><br>Use <b>＋ Add item</b>, or <b>Add items from register…</b> to pull a machine's items in for counting.</div>`;
+      return;
+    }
+    if(!rows.length){ tw.innerHTML = `<div class="empty">No items match the filter.</div>`; return; }
+    tw.innerHTML = `<table class="subgrid">
+      <thead><tr>
+        <th>Count Date</th><th>Week</th><th>Month</th><th>Material Code</th><th>Description</th>
+        <th>Part No</th><th>UOM</th><th>Bin</th><th>Inventory Type</th><th>Mvt Status</th><th>Counter</th><th>Machine</th>
+        <th class="num">Counted</th><th class="num">SAP Qty</th><th class="num">System Qty</th>
+        <th class="num">Variance</th><th>Status</th><th>Resolved</th><th>Remarks</th><th></th>
+      </tr></thead>
+      <tbody>${rows.map(r=>{
+        const v=countVariance(r), st=countStatus(r);
+        return `<tr data-id="${r.id}">
+          <td><input type="date" data-k="countDate" value="${esc(r.countDate||"")}" style="width:132px"></td>
+          <td>${esc(r.week||"")}</td>
+          <td>${esc(r.month||"")}</td>
+          <td><input data-k="sapCode" list="ct_codes" value="${esc(r.sapCode||"")}" style="width:116px"></td>
+          <td>${esc(r.description||"")}</td>
+          <td>${esc(r.partNo||"")}</td>
+          <td>${esc(r.uom||"")}</td>
+          <td>${esc(r.bin||"")}</td>
+          <td>${esc(r.invType||"")}</td>
+          <td>${esc(r.movementStatus||"")}</td>
+          <td><select data-k="counter"><option value=""></option>${staffNames().map(s=>`<option ${s===r.counter?"selected":""}>${esc(s)}</option>`).join("")}</select></td>
+          <td><select data-k="machine"><option value=""></option>${machineNames().map(m=>`<option ${m===r.machine?"selected":""}>${esc(m)}</option>`).join("")}</select></td>
+          <td><input class="num" type="number" step="any" data-k="counted" value="${esc(r.counted)}" style="width:74px"></td>
+          <td><input class="num" type="number" step="any" data-k="sapQty" value="${esc(r.sapQty)}" style="width:74px"></td>
+          <td><input class="num" type="number" step="any" data-k="systemQty" value="${esc(r.systemQty)}" style="width:74px"></td>
+          <td class="num vcell" style="${v!==''&&v!==0?'color:var(--danger);font-weight:700':''}">${v===""?"—":v}</td>
+          <td><span class="pill ${stPillClass(st)} stcell">${st}</span></td>
+          <td class="rescell">${resolveCellHTML(r)}</td>
+          <td><input data-k="remarks" value="${esc(r.remarks||"")}" placeholder="—"></td>
+          <td class="no-print" style="white-space:nowrap">${canDel
+            ? `<button class="btn danger sm" data-del="${r.id}" title="Delete row">✕</button> `
+            : `<span class="mini" title="Supervisor or Manager only">🔒</span> `}<button class="btn ghost sm" data-edit="${r.id}" title="Edit all fields">✎</button></td>
+        </tr>`;
+      }).join("")}</tbody></table>`;
+
+    tw.querySelectorAll("tbody tr").forEach(tr=>{
+      const r = DB.counts.find(x=>x.id===tr.dataset.id);
+      tr.querySelectorAll("[data-k]").forEach(el=>{
+        const k=el.dataset.k;
+        const refreshCells=()=>{
+          const v=countVariance(r), st=countStatus(r);
+          const vc=tr.querySelector(".vcell");
+          vc.textContent=v===""?"—":v;
+          vc.style.cssText=(v!==''&&v!==0)?'color:var(--danger);font-weight:700':'';
+          const sc=tr.querySelector(".stcell");
+          sc.textContent=st; sc.className=`pill ${stPillClass(st)} stcell`;
+        };
+        if(k==="sapCode"){
+          el.addEventListener("change",()=>{
+            r.sapCode=el.value.trim();
+            const it=findItem(r.sapCode);
+            if(it){
+              r.description=it.description||""; r.partNo=it.mpn||""; r.uom=it.uom||"";
+              r.invType=it.group||""; r.machine=it.machine||"";
+              r.bin=it.bin||""; r.movementStatus=it.status||"";
+              if(r.sapQty===""||r.sapQty==null) r.sapQty=it.qty;
+              if(r.systemQty===""||r.systemQty==null) r.systemQty=it.qty;
+            }
+            save(); renderNav(); drawKPIs(); drawTable();
+          });
+        } else if(k==="countDate"){
+          el.addEventListener("change",()=>{
+            r.countDate=el.value; r.week=weekOf(el.value); r.month=monthOf(el.value);
+            save(); renderNav(); drawTable();
+          });
+        } else if(k==="counter"||k==="machine"){
+          el.addEventListener("change",()=>{ r[k]=el.value; save(); renderNav(); drawKPIs(); drawTable(); });
+        } else if(k==="resolved"){
+          el.addEventListener("change",()=>{
+            r.resolved   = el.checked ? "Yes" : "";
+            r.resolvedOn = el.checked ? TODAY() : "";
+            r.resolvedBy = el.checked ? currentRole() : "";
+            save(); renderNav(); drawKPIs(); drawTable();
+          });
+        } else {
+          el.addEventListener("input",refreshCells);
+          el.addEventListener("change",()=>{
+            r[k]=(el.type==="number")?(el.value===""?"":num(el.value)):el.value;
+            refreshCells(); save(); renderNav(); drawKPIs(); drawTable();
+          });
+        }
+      });
+      tr.querySelector("[data-del]")?.addEventListener("click",()=>{
+        if(!canDeleteCounts()){ alert("Only a Supervisor or Manager can delete a count record.\nYou are signed in as: "+currentRole()); return; }
+        if(confirm(`Delete the count row for ${r.sapCode||"this item"}?`)){
+          DB.counts = DB.counts.filter(x=>x.id!==r.id); save(); renderNav(); drawKPIs(); drawTable();
+        }
+      });
+      tr.querySelector("[data-edit]")?.addEventListener("click",()=>openForm("counts", r));
+    });
+  };
+
+  app.querySelector("#additem").onclick = ()=>{
+    const t=TODAY();
+    DB.counts.push({id:uid(),countDate:t,week:weekOf(t),month:monthOf(t),
+      sapCode:"",description:"",partNo:"",uom:"",bin:"",invType:"",movementStatus:"",counter:"",machine:countsUI.machine||"",
+      counted:"",sapQty:"",systemQty:"",resolved:"",resolvedOn:"",resolutionRemarks:"",remarks:""});
+    save(); renderNav(); drawKPIs(); drawTable();
+  };
+  app.querySelector("#fillreg").onclick = ()=>{
+    if(!DB.inventory.length){ alert("The inventory register is empty."); return; }
+    const machine = prompt("Add a to-count row for every register item on which machine?\n\nType an exact machine name, or leave blank for ALL machines:\n\n"+machineNames().join(", "), countsUI.machine||"");
+    if(machine===null) return;
+    const counter = prompt("Counter name (optional):","") || "";
+    const date = prompt("Count date (YYYY-MM-DD):", TODAY()) || TODAY();
+    const wk=weekOf(date), mo=monthOf(date);
+    let pool = DB.inventory.slice();
+    if(machine.trim()) pool = pool.filter(i=>String(i.machine||"").toLowerCase()===machine.trim().toLowerCase());
+    if(!pool.length){ alert("No register items"+(machine.trim()?` for “${machine.trim()}”`:"")+"."); return; }
+    const have = new Set(DB.counts.filter(r=>r.countDate===date).map(r=>String(r.sapCode||"").toUpperCase()));
+    let added=0;
+    pool.forEach(i=>{
+      if(have.has(String(i.sapCode||"").toUpperCase())) return;
+      DB.counts.push({id:uid(),countDate:date,week:wk,month:mo,
+        sapCode:i.sapCode,description:i.description||"",partNo:i.mpn||"",uom:i.uom||"",bin:i.bin||"",invType:i.group||"",movementStatus:i.status||"",
+        counter,machine:i.machine||"",counted:"",sapQty:i.qty,systemQty:i.qty,resolved:"",resolvedOn:"",resolutionRemarks:"",remarks:""});
+      added++;
+    });
+    save(); renderNav();
+    alert(added?`${added} item(s) added for ${machine.trim()||"all machines"} (${date}).`:`Nothing added — those items are already listed for ${date}.`);
+    drawKPIs(); drawTable();
+  };
+  app.querySelector("#imp").onclick = ()=>importCSV("counts", ()=>renderCounts(app));
+  app.querySelector("#exp").onclick = ()=>exportCSV("counts");
+  app.querySelector("#prn").onclick = ()=>printCount(visible());
+  app.querySelector("#f_week").onchange = e=>{ countsUI.week=e.target.value; drawKPIs(); drawTable(); };
+  app.querySelector("#f_machine").onchange = e=>{ countsUI.machine=e.target.value; drawKPIs(); drawTable(); };
+  app.querySelector("#f_q").oninput = e=>{ countsUI.q=e.target.value; drawTable(); };
+  app.querySelectorAll("#f_status [data-s]").forEach(b=>b.onclick=()=>{ countsUI.statusFilter=b.dataset.s; markSeg(); drawTable(); });
+
+  drawKPIs(); drawTable();
+}
+
+/* ============================================================ *
+ *  INVENTORY COUNT SUMMARY  (separate sheet)
+ *  Items counted vs outstanding by day / week / month / year and
+ *  per machine, with % counted and count-accuracy %. A variance
+ *  only becomes "counted" once it is flagged Resolved.
+ * ============================================================ */
+let csUI = { grain:"month", period:"" };
+
+function csStatRow(label, s, withVar){
+  const acc = s.attempted ? s.accuracy+"%" : "—";
+  const pc  = s.total ? s.pctCounted+"%" : "—";
+  return `<tr>
+    <td>${esc(label)}</td>
+    <td class="num">${s.total}</td>
+    <td class="num">${s.counted}</td>
+    <td class="num">${s.outstanding}</td>
+    <td class="num"><span class="pill ${s.pctCounted>=95?'ok':s.pctCounted>=60?'warn':'bad'}">${pc}</span></td>
+    <td class="num"><span class="pill ${s.accuracy>=95?'ok':s.accuracy>=80?'warn':'bad'}">${acc}</span></td>
+    ${withVar?`<td class="num">${s.variance||""}</td>`:""}
+  </tr>`;
+}
+function csTotalRow(label, s, withVar){
+  return `<tr style="border-top:2px solid var(--line)"><td><b>${esc(label)}</b></td>
+    <td class="num"><b>${s.total}</b></td><td class="num"><b>${s.counted}</b></td><td class="num"><b>${s.outstanding}</b></td>
+    <td class="num"><b>${s.total?s.pctCounted+"%":"—"}</b></td><td class="num"><b>${s.attempted?s.accuracy+"%":"—"}</b></td>
+    ${withVar?`<td class="num"><b>${s.variance||""}</b></td>`:""}</tr>`;
+}
+
+function csBuild(){
+  const grain = csUI.grain;
+  const buckets = new Map();
+  DB.counts.forEach(r=>{
+    const b = csBucket(r,grain);
+    if(!buckets.has(b.key)) buckets.set(b.key,{label:b.label,rows:[]});
+    buckets.get(b.key).rows.push(r);
+  });
+  const list = [...buckets.entries()].sort((a,b)=>String(b[0]).localeCompare(String(a[0])));
+  if(csUI.period && !buckets.has(csUI.period)) csUI.period = "";
+  const periodRows  = csUI.period ? buckets.get(csUI.period).rows : DB.counts.slice();
+  const periodLabel = csUI.period ? buckets.get(csUI.period).label : "All time";
+  return { grain, buckets, list, periodRows, periodLabel };
+}
+
+function renderCountSummary(app){
+  const { grain, list, periodRows, periodLabel } = csBuild();
+  const S = countStats(periodRows);
+  const machineKeys = [...new Set(periodRows.map(r=>r.machine||"(unassigned)"))].sort();
+  const machineStats = machineKeys.map(m=>[m, countStats(periodRows.filter(r=>(r.machine||"(unassigned)")===m))]);
+  const gl = csGrainLabel(grain);
+
+  app.innerHTML = `
+    <div class="page-h"><h2>📈 Inventory Count Summary</h2>
+      <p>Items counted vs outstanding by period and per machine. A count with a variance is <b>not</b> counted as done until it is flagged <b>Resolved</b> on the Count Tracker. Accuracy % = the physical count matched the system first time.</p></div>
+
+    <div class="toolbar no-print">
+      <span class="mini">Group by</span>
+      <span id="cs_grain">
+        <button class="btn ghost sm" data-g="day">Day</button>
+        <button class="btn ghost sm" data-g="week">Week</button>
+        <button class="btn ghost sm" data-g="month">Month</button>
+        <button class="btn ghost sm" data-g="year">Year</button>
+      </span>
+      <span class="mini">Period</span>
+      <select id="cs_period">
+        <option value="">All time</option>
+        ${list.map(([k,info])=>`<option value="${esc(k)}" ${k===csUI.period?"selected":""}>${esc(info.label)}</option>`).join("")}
+      </select>
+      <button class="btn ghost sm" id="cs_prn">Print</button>
+      <button class="btn sec sm" id="cs_csv">Export machine breakdown (CSV)</button>
+      <span class="count">${esc(periodLabel)} · ${S.total} line(s)</span>
+    </div>
+
+    <div class="cards">
+      ${kpi("Count lines", S.total, esc(periodLabel))}
+      ${kpi("Counted", S.counted, S.resolved?`incl. ${S.resolved} resolved`:"physical = system", "ok")}
+      ${kpi("Outstanding", S.outstanding, `${S.pending} to count · ${S.variance} open variance`, S.outstanding?"warn":"ok")}
+      ${kpi("% Counted", (S.total?S.pctCounted+"%":"—"), `${S.counted} of ${S.total}`, S.pctCounted>=95?"ok":S.pctCounted>=60?"warn":"bad")}
+      ${kpi("Accuracy", (S.attempted?S.accuracy+"%":"—"), S.attempted?`${S.exact}/${S.attempted} right first time`:"—", S.accuracy>=95?"ok":S.accuracy>=80?"warn":"bad")}
+      ${kpi("Open variances", S.variance, "resolve before they count", S.variance?"bad":"ok")}
+    </div>
+
+    <div class="panel" style="padding:14px;margin-bottom:16px">
+      <div class="sechead">Items counted per ${gl.toLowerCase()}</div>
+      <div class="tablewrap"><table class="grid">
+        <thead><tr><th>${gl}</th><th class="num">Total</th><th class="num">Counted</th><th class="num">Outstanding</th><th class="num">% Counted</th><th class="num">Accuracy %</th></tr></thead>
+        <tbody>
+          ${list.length ? list.map(([k,info])=>csStatRow(info.label, countStats(info.rows), false)).join("") : `<tr><td colspan="6" class="empty">No count records yet.</td></tr>`}
+          ${list.length ? csTotalRow("All periods", countStats(DB.counts), false) : ""}
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="panel" style="padding:14px">
+      <div class="sechead">Breakdown per machine — ${esc(periodLabel)}</div>
+      <div class="tablewrap"><table class="grid">
+        <thead><tr><th>Machine</th><th class="num">Total items</th><th class="num">Counted</th><th class="num">Outstanding</th><th class="num">% Counted</th><th class="num">Accuracy %</th><th class="num">Open var.</th></tr></thead>
+        <tbody>
+          ${machineStats.length ? machineStats.map(([m,s])=>csStatRow(m,s,true)).join("") : `<tr><td colspan="7" class="empty">Nothing counted in this period.</td></tr>`}
+          ${machineStats.length ? csTotalRow("All machines", S, true) : ""}
+        </tbody>
+      </table></div>
+      <div style="margin-top:12px">
+        ${machineStats.map(([m,s])=>`<div style="margin:8px 0">
+          <div class="flex"><span>${esc(m)}</span><span class="right mini">${s.counted}/${s.total} counted${s.variance?` · ${s.variance} open`:""} · acc ${s.attempted?s.accuracy+"%":"—"}</span></div>
+          <div class="bar"><i style="width:${s.total?(s.counted/s.total*100).toFixed(1):0}%;background:${s.pctCounted>=95?'var(--accent)':s.pctCounted>=60?'var(--warn)':'var(--danger)'}"></i></div>
+        </div>`).join("")}
+      </div>
+    </div>
+  `;
+
+  const markG = ()=> app.querySelectorAll("#cs_grain [data-g]").forEach(b=>{
+    const on=b.dataset.g===csUI.grain; b.classList.toggle("sec",on); b.classList.toggle("ghost",!on);
+  });
+  markG();
+  app.querySelectorAll("#cs_grain [data-g]").forEach(b=>b.onclick=()=>{ csUI.grain=b.dataset.g; csUI.period=""; renderCountSummary(app); });
+  app.querySelector("#cs_period").onchange = e=>{ csUI.period=e.target.value; renderCountSummary(app); };
+  app.querySelector("#cs_prn").onclick = printCountSummary;
+  app.querySelector("#cs_csv").onclick = ()=>{
+    const head=["Machine","Total","Counted","Outstanding","PctCounted","AccuracyPct","OpenVariances"];
+    const lines=[head.join(",")].concat(machineStats.map(([m,s])=>
+      [`"${String(m).replace(/"/g,'""')}"`,s.total,s.counted,s.outstanding,s.pctCounted,s.accuracy,s.variance].join(",")));
+    lines.push([`"All machines"`,S.total,S.counted,S.outstanding,S.pctCounted,S.accuracy,S.variance].join(","));
+    const blob=new Blob([lines.join("\n")],{type:"text/csv"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+    a.download="GZI_count_summary_"+(csUI.period||"all")+"_"+TODAY()+".csv"; a.click(); URL.revokeObjectURL(a.href);
+  };
+}
+
+function printCountSummary(){
+  const { grain, list, periodRows, periodLabel } = csBuild();
+  const gl = csGrainLabel(grain);
+  const mk=[...new Set(periodRows.map(r=>r.machine||"(unassigned)"))].sort();
+  const row=(l,s,v)=>`<tr><td>${esc(l)}</td><td>${s.total}</td><td>${s.counted}</td><td>${s.outstanding}</td><td>${s.total?s.pctCounted+"%":"—"}</td><td>${s.attempted?s.accuracy+"%":"—"}</td>${v?`<td>${s.variance||""}</td>`:""}</tr>`;
+  doPrint(`
+    <div class="ph"><div><h2>INVENTORY COUNT SUMMARY</h2><div>GZI SA · Technical Stores · ${esc(periodLabel)}</div></div><div>${TODAY()}</div></div>
+    <h3>Items counted per ${gl.toLowerCase()}</h3>
+    <table><thead><tr><th>${gl}</th><th>Total</th><th>Counted</th><th>Outstanding</th><th>% Counted</th><th>Accuracy %</th></tr></thead>
+    <tbody>${list.map(([k,info])=>row(info.label,countStats(info.rows),false)).join("")}${row("All periods",countStats(DB.counts),false)}</tbody></table>
+    <h3>Breakdown per machine — ${esc(periodLabel)}</h3>
+    <table><thead><tr><th>Machine</th><th>Total</th><th>Counted</th><th>Outstanding</th><th>% Counted</th><th>Accuracy %</th><th>Open var.</th></tr></thead>
+    <tbody>${mk.map(m=>row(m,countStats(periodRows.filter(r=>(r.machine||"(unassigned)")===m)),true)).join("")}${row("All machines",countStats(periodRows),true)}</tbody></table>
+    <p class="mini">A variance is excluded from "Counted" until it is flagged Resolved. Accuracy % = physical matched the system first time.</p>`);
 }
 
 /* ============================================================ *
@@ -1502,7 +1849,9 @@ function printCollection(key){
   const sc=SCHEMAS[key];
   let rows=DB[key].slice();
   if(sc.areaField && globalArea) rows=rows.filter(r=>r[sc.areaField]===globalArea);
-  const cols=sc.cols.filter(c=>!c.type||c.type!=="textarea").slice(0,12);
+  const cols=(key==="counts")
+    ? sc.cols.filter(c=>c.key!=="remarks")
+    : sc.cols.filter(c=>!c.type||c.type!=="textarea").slice(0,12);
   doPrint(`
     <div class="ph"><div><h2>${esc(sc.label)}</h2><div>GZI SA · Technical Stores · ${esc(globalArea||"All areas")}</div></div><div>${TODAY()}</div></div>
     <table><thead><tr>${cols.map(c=>`<th>${esc(c.label)}</th>`).join("")}</tr></thead>
@@ -1524,13 +1873,17 @@ function printBinCard(code){
     <table><thead><tr><th>Date</th><th>Type</th><th>Doc</th><th>In</th><th>Out</th><th>Balance</th><th>By</th><th>Shift</th><th>Remarks</th></tr></thead>
     <tbody>${moves.map(m=>{bal+=num(m.qtyIn)-num(m.qtyOut);return `<tr><td>${esc(m.date||"")}</td><td>${esc(m.type||"")}</td><td>${esc(m.docNo||"")}</td><td>${num(m.qtyIn)||""}</td><td>${num(m.qtyOut)||""}</td><td>${int(bal)}</td><td>${esc(m.onShift||"")}</td><td>${esc(m.shift||"")}</td><td>${esc(m.reason||m.remarks||"")}</td></tr>`;}).join("")}</tbody></table>`);
 }
-function printCount(c){
+function printCount(rows){
+  rows = (rows && rows.length ? rows : DB.counts.slice());
+  const wk = (rows[0]||{}).week || "";
   doPrint(`
-    <div class="ph"><div><h2>CYCLE COUNT SHEET</h2><div>GZI SA · Technical Stores · ${esc(c.area||"All areas")}</div></div><div>${esc(c.countDate)} · ${esc(c.weekNo||"")}</div></div>
-    <table><tbody><tr><td><b>Counter</b></td><td>${esc(c.counter||"")}</td><td><b>Month</b></td><td>${esc(c.month||"")}</td><td><b>Status</b></td><td>${esc(c.status||"")}</td></tr></tbody></table><br/>
-    <table><thead><tr><th>#</th><th>SAP Code</th><th>Description</th><th>Part No</th><th>UOM</th><th>Bin</th><th>Min</th><th>Max</th><th>System</th><th>Physical</th><th>Variance</th><th>Movement</th><th>Comments</th></tr></thead>
-    <tbody>${c.lines.map((l,i)=>`<tr><td>${i+1}</td><td>${esc(l.sapCode)}</td><td>${esc(l.description)}</td><td>${esc(l.partNo||"")}</td><td>${esc(l.uom||"")}</td><td>${esc(l.bin||"")}</td><td>${esc(l.min)}</td><td>${esc(l.max)}</td><td>${esc(l.system)}</td><td>${l.physical===""?"______":esc(l.physical)}</td><td>${l.physical===""?"":num(l.physical)-num(l.system)}</td><td>${esc(l.movementStatus||"")}</td><td>${esc(l.comments||"")}</td></tr>`).join("")}</tbody></table>
-    <p>${c.lines.length} line(s) &nbsp;•&nbsp; Counted by ____________________ &nbsp; Checked by ____________________ &nbsp; Date __________</p>`);
+    <div class="ph"><div><h2>INVENTORY COUNT SHEET</h2><div>GZI SA · Technical Stores</div></div><div>${esc(wk)} &nbsp; ${TODAY()}</div></div>
+    <table><thead><tr><th>Count Date</th><th>Week</th><th>Material Code</th><th>Description</th><th>Part No</th><th>UOM</th><th>Bin</th><th>Machine</th><th>Inv. Type</th><th>SAP Qty</th><th>Counted</th><th>Variance</th><th>Status</th><th>Resolved</th><th>Remarks</th></tr></thead>
+    <tbody>${rows.map(r=>{
+      const v = countVariance(r), st = countStatus(r);
+      return `<tr><td>${esc(r.countDate||"")}</td><td>${esc(r.week||"")}</td><td>${esc(r.sapCode||"")}</td><td>${esc(r.description||"")}</td><td>${esc(r.partNo||"")}</td><td>${esc(r.uom||"")}</td><td>${esc(r.bin||"")}</td><td>${esc(r.machine||"")}</td><td>${esc(r.invType||"")}</td><td>${esc(r.sapQty)}</td><td>${r.counted===""||r.counted==null?"__________":esc(r.counted)}</td><td>${v===""?"":v}</td><td>${esc(st)}</td><td>${isResolved(r)?"Yes":""}</td><td>${esc(r.remarks||"")}</td></tr>`;
+    }).join("")}</tbody></table>
+    <p>${rows.length} item(s) &nbsp;•&nbsp; Counted by ____________________ &nbsp; Checked by ____________________ &nbsp; Date __________</p>`);
 }
 function printIVF(f){
   const k=ivfKPI(f);
@@ -1601,12 +1954,46 @@ document.getElementById("btnSeed").onclick = ()=>{
  *  AUTH GATE + BOOT
  * ============================================================ */
 const AUTH_USER = "Admin", AUTH_PASS = "Admin";
+const ROLES = ["Counter","Storeman","Store Controller","Supervisor","Manager"];
+function currentRole(){ return sessionStorage.getItem("shb_role") || "Counter"; }
+function canDeleteCounts(){ return /^(Supervisor|Manager)$/i.test(currentRole()); }
+
+/* One-off: flatten any old parent+lines count sheets into flat count records. */
+function migrateCounts(){
+  if(!Array.isArray(DB.counts) || !DB.counts.some(r=>Array.isArray(r.lines))) return;
+  const flat=[];
+  DB.counts.forEach(r=>{
+    if(!Array.isArray(r.lines)){ flat.push(r); return; }
+    if(!r.lines.length){
+      flat.push({id:r.id,countDate:r.countDate||"",week:r.weekNo||weekOf(r.countDate),month:r.month||monthOf(r.countDate),
+        sapCode:"",description:"",partNo:"",uom:"",invType:"",counter:r.counter||"",machine:r.area||"",
+        counted:"",sapQty:"",systemQty:"",remarks:"Migrated from an empty count sheet"});
+      return;
+    }
+    r.lines.forEach((l,i)=>{
+      const it=findItem(l.sapCode)||{};
+      flat.push({
+        id:(i===0? r.id : uid()),
+        countDate:r.countDate||"", week:r.weekNo||weekOf(r.countDate), month:r.month||monthOf(r.countDate),
+        sapCode:l.sapCode||"", description:l.description||it.description||"", partNo:l.partNo||it.mpn||"",
+        uom:l.uom||it.uom||"", invType:it.group||"", counter:r.counter||"", machine:it.machine||r.area||"",
+        counted:(l.physical===""||l.physical==null)?"":num(l.physical),
+        sapQty:(l.system===""||l.system==null)?"":num(l.system),
+        systemQty:(l.system===""||l.system==null)?"":num(l.system),
+        remarks:l.comments||""
+      });
+    });
+  });
+  DB.counts=flat; save();
+}
+
 function startApp(){
   document.body.classList.add("authed");
+  const rt=document.getElementById("roleTag"); if(rt) rt.textContent = "Role: "+currentRole();
   document.getElementById("globalArea").addEventListener("change",e=>{ globalArea=e.target.value; renderRoute(); });
   document.getElementById("btnRefresh").onclick = async ()=>{
     if(document.getElementById("modalRoot").innerHTML.trim()){ toast("Close the open dialog first."); return; }
-    try{ await pullAll(); renderNav(); fillGlobalArea(); renderRoute(); }
+    try{ await pullAll(); migrateCounts(); renderNav(); fillGlobalArea(); renderRoute(); }
     catch(e){ setSync("err"); toast("Refresh failed: "+e.message); }
   };
   document.getElementById("btnLogout").onclick = ()=>{
@@ -1614,12 +2001,13 @@ function startApp(){
   };
   window.addEventListener("focus", ()=>{
     if(document.getElementById("modalRoot").innerHTML.trim()) return;
-    pullAll().then(()=>{ renderNav(); fillGlobalArea(); renderRoute(); }).catch(()=>setSync("err"));
+    pullAll().then(()=>{ migrateCounts(); renderNav(); fillGlobalArea(); renderRoute(); }).catch(()=>setSync("err"));
   });
 
   const app = document.getElementById("app");
   app.innerHTML = `<div class="empty">Loading the shared database…</div>`;
   pullAll().then(()=>{
+    migrateCounts();
     renderNav(); fillGlobalArea(); renderRoute();
   }).catch(e=>{
     setSync("err");
@@ -1635,7 +2023,12 @@ function startApp(){
     e.preventDefault();
     const u = document.getElementById("lg_user").value.trim();
     const p = document.getElementById("lg_pass").value;
-    if(u===AUTH_USER && p===AUTH_PASS){ sessionStorage.setItem("shb_auth","1"); startApp(); }
+    const role = document.getElementById("lg_role").value || "Counter";
+    if(u===AUTH_USER && p===AUTH_PASS){
+      sessionStorage.setItem("shb_auth","1");
+      sessionStorage.setItem("shb_role", role);
+      startApp();
+    }
     else { err.textContent = "Wrong username or password."; }
   });
 })();
