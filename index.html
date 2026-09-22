@@ -506,7 +506,7 @@ const F = (key,label,type,extra={}) => Object.assign({key,label,type},extra);
 
 const SCHEMAS = {
   inventory:{
-    label:"Inventory (all areas)", icon:"📦", singular:"item", areaField:"area", print:false,
+    label:"Stores Inventory", icon:"📦", singular:"item", areaField:"area", print:false,
     cols:[
       F("sapCode","SAP Code","text",{req:true}),
       F("description","Description","text",{req:true,grow:1}),
@@ -739,7 +739,7 @@ const SCHEMAS = {
 const NAV = [
   {grp:"Overview", items:[["dashboard","Dashboard","📊"]]},
   {grp:"Stock control", items:[
-    ["inventory","Inventory — all areas","📦"],
+    ["inventory","Stores Inventory","📦"],
     ["bins","Bin Locations","🗄️"],
     ["counts","Inventory Count Tracker","🧮"],
     ["countsummary","Count Summary","📈"],
@@ -835,16 +835,20 @@ function renderCollection(app, key){
   const sc = SCHEMAS[key];
   if(!sc){ app.innerHTML="<div class='empty'>Unknown screen.</div>"; return; }
   const search = (sortState[key+'_q']||"");
+  let invSelectMode = false;
+  const invSelected = new Set();
   const wrap = document.createElement("div");
   wrap.innerHTML = `
     <div class="page-h"><h2>${sc.icon} ${esc(sc.label)}</h2></div>
     <p class="mini">${collDesc(key)}</p>
     <div class="toolbar">
+      ${key==="inventory"?`<button class="btn" id="sendCount" style="display:none">Send For Count</button>`:""}
       <button class="btn" id="add">+ New ${esc(sc.singular)}</button>
       <input type="search" id="q" placeholder="Search…" value="${esc(search)}"/>
       ${sc.areaField?`<select id="areaf"><option value="">All areas</option>${areaNames().map(a=>`<option ${a===globalArea?'selected':''}>${esc(a)}</option>`).join("")}</select>`:""}
       <button class="btn sec sm" id="imp">Import CSV</button>
       <button class="btn sec sm" id="exp">Export CSV</button>
+      ${key==="inventory"?`<button class="btn sec sm" id="selCount">Select Items to count</button>`:""}
       <button class="btn ghost sm" id="prn">Print</button>
       <span class="count" id="cnt"></span>
     </div>
@@ -854,6 +858,16 @@ function renderCollection(app, key){
   app.appendChild(wrap);
 
   const draw = ()=>{
+    if(key==="inventory"){
+      const selBtn = wrap.querySelector("#selCount");
+      if(selBtn) selBtn.textContent = invSelectMode ? "Cancel selection" : "Select Items to count";
+      const sendBtn = wrap.querySelector("#sendCount");
+      if(sendBtn){
+        sendBtn.style.display = invSelectMode ? "" : "none";
+        sendBtn.textContent = `Send For Count (${invSelected.size})`;
+        sendBtn.disabled = !invSelected.size;
+      }
+    }
     const q = (document.getElementById("q").value||"").toLowerCase();
     sortState[key+'_q']=q;
     const af = sc.areaField ? (document.getElementById("areaf")?.value||"") : "";
@@ -876,9 +890,27 @@ function renderCollection(app, key){
     const cols = sc.cols;
     const tw = document.getElementById("tw");
     if(!rows.length){ tw.innerHTML = `<div class="empty">No records. Click “+ New ${esc(sc.singular)}” or Import CSV.</div>`; }
+    else if(key==="inventory" && invSelectMode){
+      tw.innerHTML = `<table class="grid"><thead><tr><th></th>${cols.map(c=>`<th>${esc(c.label)}</th>`).join("")}</tr></thead>
+        <tbody>${rows.map(r=>`<tr data-id="${r.id}"><td><input type="checkbox" data-selchk="${r.id}" ${invSelected.has(r.id)?"checked":""}></td>${cols.map(c=>cellHTML(c,r)).join("")}</tr>`).join("")}</tbody></table>`;
+      tw.querySelectorAll("[data-selchk]").forEach(cb=>{
+        cb.onchange = ()=>{
+          if(cb.checked) invSelected.add(cb.dataset.selchk); else invSelected.delete(cb.dataset.selchk);
+          const sendBtn = wrap.querySelector("#sendCount");
+          sendBtn.textContent = `Send For Count (${invSelected.size})`;
+          sendBtn.disabled = !invSelected.size;
+        };
+      });
+      tw.querySelectorAll("tbody tr").forEach(tr=>tr.onclick=e=>{
+        if(e.target.matches('input[type="checkbox"]')) return;
+        const cb = tr.querySelector("[data-selchk]");
+        cb.checked = !cb.checked; cb.dispatchEvent(new Event("change"));
+      });
+    }
     else{
+      const canEditRow = key!=="inventory" || canManageInventory();
       tw.innerHTML = `<table class="grid"><thead><tr>${cols.map(c=>`<th data-c="${c.key}">${esc(c.label)}${sortState[key]&&sortState[key].col===c.key?(sortState[key].dir==="desc"?" ▾":" ▴"):""}</th>`).join("")}<th></th></tr></thead>
-        <tbody>${rows.map(r=>`<tr data-id="${r.id}">${cols.map(c=>cellHTML(c,r)).join("")}<td class="no-print">${(key==="counts" && !canDeleteCounts())?`<span class="mini" title="Supervisor or Manager only">🔒</span>`:`<button class="btn danger sm" data-del="${r.id}">✕</button>`}</td></tr>`).join("")}</tbody></table>`;
+        <tbody>${rows.map(r=>`<tr data-id="${r.id}">${cols.map(c=>cellHTML(c,r)).join("")}<td class="no-print">${((key==="counts" && !canDeleteCounts())||(key==="inventory" && !canManageInventory()))?`<span class="mini" title="Supervisor or Manager only">🔒</span>`:`<button class="btn danger sm" data-del="${r.id}">✕</button>`}</td></tr>`).join("")}</tbody></table>`;
       tw.querySelectorAll("th[data-c]").forEach(th=>th.onclick=()=>{
         const c=th.dataset.c; const s=sortState[key];
         sortState[key]= s&&s.col===c ? {col:c,dir:s.dir==="asc"?"desc":"asc"} : {col:c,dir:"asc"};
@@ -886,11 +918,13 @@ function renderCollection(app, key){
       });
       tw.querySelectorAll("tbody tr").forEach(tr=>tr.onclick=e=>{
         if(e.target.closest("[data-del]")) return;
+        if(!canEditRow){ alert("Editing inventory needs a Supervisor or Manager role.\nYou are signed in as: "+currentRole()); return; }
         openForm(key, DB[key].find(x=>x.id===tr.dataset.id));
       });
       tw.querySelectorAll("[data-del]").forEach(b=>b.onclick=e=>{
         e.stopPropagation();
         if(key==="counts" && !canDeleteCounts()){ alert("Only a Supervisor or Manager can delete a count record.\nYou are signed in as: "+currentRole()); return; }
+        if(key==="inventory" && !canManageInventory()){ alert("Only a Supervisor or Manager can delete an inventory item.\nYou are signed in as: "+currentRole()); return; }
         if(confirm("Delete this record?")){ DB[key]=DB[key].filter(x=>x.id!==b.dataset.del); save(); renderNav(); draw(); drawSummary(); }
       });
     }
@@ -909,12 +943,34 @@ function renderCollection(app, key){
   wrap.querySelector("#exp").onclick = ()=>exportCSV(key);
   wrap.querySelector("#imp").onclick = ()=>importCSV(key, draw);
   wrap.querySelector("#prn").onclick = ()=>printCollection(key);
+  if(key==="inventory"){
+    wrap.querySelector("#selCount").onclick = ()=>{
+      invSelectMode = !invSelectMode;
+      if(!invSelectMode) invSelected.clear();
+      draw();
+    };
+    wrap.querySelector("#sendCount").onclick = ()=>{
+      if(!invSelected.size) return;
+      const items = DB.inventory.filter(i=>invSelected.has(i.id));
+      const t=TODAY(), wk=weekOf(t), mo=monthOf(t);
+      items.slice().reverse().forEach(it=>{
+        DB.counts.unshift({id:uid(),countDate:t,week:wk,month:mo,
+          sapCode:it.sapCode,description:it.description||"",partNo:it.mpn||"",uom:it.uom||"",invType:it.group||"",
+          counter:"",machine:it.machine||"",counted:"",sapQty:it.qty,resolved:"",resolvedOn:"",resolutionRemarks:"",remarks:""});
+      });
+      save(); renderNav();
+      const n=items.length;
+      invSelectMode=false; invSelected.clear();
+      alert(`${n} item(s) sent for counting — now at the top of the Inventory Count Tracker.`);
+      route="counts"; renderNav(); renderRoute();
+    };
+  }
   draw();
 }
 
 function collDesc(key){
   return ({
-    inventory:"Full item register across every store and branch. Click a row to edit. Re-order and Over-Max flags are calculated from Min / Max.",
+    inventory:"Full item register across every store and branch. Re-order and Over-Max flags are calculated from Min / Max. Editing or deleting an item needs a Supervisor or Manager role. Use “Select Items to count” to tick items and send them to the top of the Inventory Count Tracker.",
     bins:"Every bin location with the items and quantity it holds.",
     counts:"One row per material counted. Week, Month, Description, Part No, UOM, Machine and Inventory Type pre-fill when you pick a Material Code. Variance = Counted − SAP Quantity; Status shows “Counted” when they match, otherwise “Variance”. Only a Supervisor or Manager can delete a row.",
     movements:"Every stock transaction. Saving a movement updates the item’s On-Hand quantity and feeds the Bin Card.",
@@ -1129,19 +1185,6 @@ function renderDashboard(app){
 
     <div class="grid2">
       <div class="panel" style="padding:14px">
-        <div class="sechead">Stock value by area</div>
-        ${valueByAreaHTML()}
-      </div>
-      <div class="panel" style="padding:14px">
-        <div class="sechead">Re-order list ${reorder.length?`<span class="tag">${reorder.length}</span>`:""}</div>
-        ${reorder.length? `<div class="tablewrap"><table class="grid"><thead><tr><th>SAP</th><th>Description</th><th>Area</th><th class="num">On hand</th><th class="num">Min</th><th class="num">Order to Max</th></tr></thead><tbody>
-          ${reorder.slice(0,40).map(i=>`<tr><td>${esc(i.sapCode)}</td><td>${esc(i.description)}</td><td>${esc(i.area)}</td><td class="num">${int(i.qty)}</td><td class="num">${int(i.min)}</td><td class="num">${int(Math.max(0,num(i.max)-num(i.qty)))}</td></tr>`).join("")}
-        </tbody></table></div>` : `<div class="empty">Nothing below Min. 👍</div>`}
-      </div>
-    </div>
-
-    <div class="grid2" style="margin-top:16px">
-      <div class="panel" style="padding:14px">
         <div class="sechead">Inter-branch transfers by route</div>
         ${interbranchSummaryHTML(true)}
       </div>
@@ -1171,16 +1214,6 @@ function kpi(lbl,val,hint,tone,go){
     <div class="val" ${tone?`style="color:var(--${tone==='bad'?'danger':tone==='warn'?'warn':tone==='ok'?'accent':'ink'})"`:""}>${esc(val)}</div>
     <div class="hint">${esc(hint||"")}</div>
   </div>`;
-}
-function valueByAreaHTML(){
-  const map={};
-  DB.inventory.forEach(i=>{ const a=i.area||"(no area)"; map[a]=(map[a]||0)+num(i.qty)*num(i.unitCost); });
-  const rows=Object.entries(map).sort((a,b)=>b[1]-a[1]);
-  const mx=Math.max(1,...rows.map(r=>r[1]));
-  if(!rows.length) return `<div class="empty">No inventory yet.</div>`;
-  return rows.map(([a,v])=>`<div style="margin:8px 0">
-    <div class="flex"><span>${esc(a)}</span><span class="right mini">${money(v)}</span></div>
-    <div class="bar"><i style="width:${(v/mx*100).toFixed(1)}%"></i></div></div>`).join("");
 }
 function interbranchSummaryHTML(compact){
   const map={};
@@ -3005,6 +3038,7 @@ const AUTH_USER = "Admin", AUTH_PASS = "Admin";
 const ROLES = ["Counter","Storeman","Store Controller","Supervisor","Manager"];
 function currentRole(){ return sessionStorage.getItem("shb_role") || "Counter"; }
 function canDeleteCounts(){ return /^(Supervisor|Manager)$/i.test(currentRole()); }
+function canManageInventory(){ return /^(Supervisor|Manager)$/i.test(currentRole()); }
 
 /* One-off: flatten any old parent+lines count sheets into flat count records. */
 function migrateCounts(){
