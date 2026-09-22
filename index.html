@@ -205,11 +205,11 @@ const monthOf = d => d ? new Date(d).toLocaleDateString("en-ZA",{month:"short",y
 const weekOf = d => { if(!d) return ""; const dt=new Date(d); const on=new Date(dt.getFullYear(),0,1); const w=Math.ceil((((dt-on)/86400000)+on.getDay()+1)/7); return "Wk "+w; };
 
 /* ---------- reference lists ---------- */
-const UOMS = ["PC","EA","M","L","KG","SET","PAC","ROLL","BOX","PAIR","BT","PK","TH","FT"];
+const UOMS = ["PC","EA","M","L","KG","SET","PAC","ROLL","ROL","BOX","PAIR","BT","PK","TH","FT","GAL","CAN","CAR","ML","MM","BAG","P","PAA","G"];
 const GROUPS = ["SP01 - Electrical","SP02 - Mechanical","SP03 - Other Spares"];
 const SHIFTS = ["A","B","C","D","Day","Night","A - Day","A - Night","B - Day","B - Night","C - Day","C - Night","D - Day","D - Night"];
 const MOVE_TYPES = ["Issue","Reverse Issue","Inventory Receipt","Reverse-PO","Inter-Branch Transfer","Inbound Transfer","Outbound Transfer","Adjustment","Return","Scrap","Other"];
-const STOCK_STATUS = ["Active spare","Non Mover","No movement","Obsolete","Use Up"];
+const STOCK_STATUS = ["Active spare","Non Mover","No movement","Obsolete","Use Up","Good","Remove"];
 const INV_TYPES = ["SP01 - Electrical","SP02 - Mechanical","SP03 - Other Spares","Consumable","Rotable","Tool","Chemical","Lubricant"];
 
 /* ---------- default (sample) data derived from the source trackers ---------- */
@@ -380,8 +380,15 @@ const rowIn  = r => Object.assign({}, r.data, {id: r.id});
 const rowOut = r => ({ id: r.id, data: stripId(r), updated_at: new Date().toISOString() });
 
 async function sbList(k){
-  const rows = await sb(TB(k) + "?select=id,data&order=updated_at.asc");
-  return rows.map(rowIn);
+  const page = 1000;
+  let all = [], from = 0;
+  while(true){
+    const rows = await sb(TB(k) + "?select=id,data&order=updated_at.asc&limit=" + page + "&offset=" + from);
+    all = all.concat(rows);
+    if(rows.length < page) break;
+    from += page;
+  }
+  return all.map(rowIn);
 }
 async function sbUpsert(k, row){
   await sb(TB(k), {
@@ -1557,14 +1564,19 @@ function renderCounts(app){
  * ============================================================ */
 let csUI = { grain:"month", period:"" };
 
-function csStatRow(label, s, withVar){
+function csStatRow(label, s, withVar, linkMachine){
   const acc = s.attempted ? s.accuracy+"%" : "—";
   const pc  = s.total ? s.pctCounted+"%" : "—";
+  const remPc = s.total ? (100-s.pctCounted)+"%" : "—";
+  const labelCell = linkMachine
+    ? `<span class="link" data-machine="${esc(label)}" style="cursor:pointer;color:var(--brand);font-weight:600">${esc(label)}</span>`
+    : esc(label);
   return `<tr>
-    <td>${esc(label)}</td>
+    <td>${labelCell}</td>
     <td class="num">${s.total}</td>
     <td class="num">${s.counted}</td>
     <td class="num">${s.outstanding}</td>
+    <td class="num">${remPc}</td>
     <td class="num"><span class="pill ${s.pctCounted>=95?'ok':s.pctCounted>=60?'warn':'bad'}">${pc}</span></td>
     <td class="num"><span class="pill ${s.accuracy>=95?'ok':s.accuracy>=80?'warn':'bad'}">${acc}</span></td>
     ${withVar?`<td class="num">${s.variance||""}</td>`:""}
@@ -1573,6 +1585,7 @@ function csStatRow(label, s, withVar){
 function csTotalRow(label, s, withVar){
   return `<tr style="border-top:2px solid var(--line)"><td><b>${esc(label)}</b></td>
     <td class="num"><b>${s.total}</b></td><td class="num"><b>${s.counted}</b></td><td class="num"><b>${s.outstanding}</b></td>
+    <td class="num"><b>${s.total?(100-s.pctCounted)+"%":"—"}</b></td>
     <td class="num"><b>${s.total?s.pctCounted+"%":"—"}</b></td><td class="num"><b>${s.attempted?s.accuracy+"%":"—"}</b></td>
     ${withVar?`<td class="num"><b>${s.variance||""}</b></td>`:""}</tr>`;
 }
@@ -1633,26 +1646,26 @@ function renderCountSummary(app){
     <div class="panel" style="padding:14px;margin-bottom:16px">
       <div class="sechead">Items counted per ${gl.toLowerCase()}</div>
       <div class="tablewrap"><table class="grid">
-        <thead><tr><th>${gl}</th><th class="num">Total</th><th class="num">Counted</th><th class="num">Outstanding</th><th class="num">% Counted</th><th class="num">Accuracy %</th></tr></thead>
+        <thead><tr><th>${gl}</th><th class="num">Total</th><th class="num">Counted</th><th class="num">Outstanding</th><th class="num">% Remaining</th><th class="num">% Counted</th><th class="num">Accuracy %</th></tr></thead>
         <tbody>
-          ${list.length ? list.map(([k,info])=>csStatRow(info.label, countStats(info.rows), false)).join("") : `<tr><td colspan="6" class="empty">No count records yet.</td></tr>`}
+          ${list.length ? list.map(([k,info])=>csStatRow(info.label, countStats(info.rows), false)).join("") : `<tr><td colspan="7" class="empty">No count records yet.</td></tr>`}
           ${list.length ? csTotalRow("All periods", countStats(DB.counts), false) : ""}
         </tbody>
       </table></div>
     </div>
 
     <div class="panel" style="padding:14px">
-      <div class="sechead">Breakdown per machine — ${esc(periodLabel)}</div>
+      <div class="sechead">Breakdown per machine — ${esc(periodLabel)} <span class="mini">(click a machine to see only its counts)</span></div>
       <div class="tablewrap"><table class="grid">
-        <thead><tr><th>Machine</th><th class="num">Total items</th><th class="num">Counted</th><th class="num">Outstanding</th><th class="num">% Counted</th><th class="num">Accuracy %</th><th class="num">Open var.</th></tr></thead>
+        <thead><tr><th>Machine</th><th class="num">Total items</th><th class="num">Counted</th><th class="num">Outstanding</th><th class="num">% Remaining</th><th class="num">% Counted</th><th class="num">Accuracy %</th><th class="num">Open var.</th></tr></thead>
         <tbody>
-          ${machineStats.length ? machineStats.map(([m,s])=>csStatRow(m,s,true)).join("") : `<tr><td colspan="7" class="empty">Nothing counted in this period.</td></tr>`}
+          ${machineStats.length ? machineStats.map(([m,s])=>csStatRow(m,s,true,true)).join("") : `<tr><td colspan="8" class="empty">Nothing counted in this period.</td></tr>`}
           ${machineStats.length ? csTotalRow("All machines", S, true) : ""}
         </tbody>
       </table></div>
       <div style="margin-top:12px">
         ${machineStats.map(([m,s])=>`<div style="margin:8px 0">
-          <div class="flex"><span>${esc(m)}</span><span class="right mini">${s.counted}/${s.total} counted${s.variance?` · ${s.variance} open`:""} · acc ${s.attempted?s.accuracy+"%":"—"}</span></div>
+          <div class="flex"><span class="link" data-machine="${esc(m)}" style="cursor:pointer;color:var(--brand);font-weight:600">${esc(m)}</span><span class="right mini">${s.counted}/${s.total} counted${s.variance?` · ${s.variance} open`:""} · acc ${s.attempted?s.accuracy+"%":"—"}</span></div>
           <div class="bar"><i style="width:${s.total?(s.counted/s.total*100).toFixed(1):0}%;background:${s.pctCounted>=95?'var(--accent)':s.pctCounted>=60?'var(--warn)':'var(--danger)'}"></i></div>
         </div>`).join("")}
       </div>
@@ -1665,6 +1678,12 @@ function renderCountSummary(app){
   markG();
   app.querySelectorAll("#cs_grain [data-g]").forEach(b=>b.onclick=()=>{ csUI.grain=b.dataset.g; csUI.period=""; renderCountSummary(app); });
   app.querySelector("#cs_period").onchange = e=>{ csUI.period=e.target.value; renderCountSummary(app); };
+  app.querySelectorAll("[data-machine]").forEach(el=>el.onclick=()=>{
+    const m = el.dataset.machine;
+    countsUI.machine = m==="(unassigned)" ? "" : m;
+    countsUI.week=""; countsUI.statusFilter=""; countsUI.q="";
+    route="counts"; renderNav(); renderRoute();
+  });
   app.querySelector("#cs_prn").onclick = printCountSummary;
   app.querySelector("#cs_csv").onclick = ()=>{
     const head=["Machine","Total","Counted","Outstanding","PctCounted","AccuracyPct","OpenVariances"];
@@ -1681,14 +1700,14 @@ function printCountSummary(){
   const { grain, list, periodRows, periodLabel } = csBuild();
   const gl = csGrainLabel(grain);
   const mk=[...new Set(periodRows.map(r=>r.machine||"(unassigned)"))].sort();
-  const row=(l,s,v)=>`<tr><td>${esc(l)}</td><td>${s.total}</td><td>${s.counted}</td><td>${s.outstanding}</td><td>${s.total?s.pctCounted+"%":"—"}</td><td>${s.attempted?s.accuracy+"%":"—"}</td>${v?`<td>${s.variance||""}</td>`:""}</tr>`;
+  const row=(l,s,v)=>`<tr><td>${esc(l)}</td><td>${s.total}</td><td>${s.counted}</td><td>${s.outstanding}</td><td>${s.total?(100-s.pctCounted)+"%":"—"}</td><td>${s.total?s.pctCounted+"%":"—"}</td><td>${s.attempted?s.accuracy+"%":"—"}</td>${v?`<td>${s.variance||""}</td>`:""}</tr>`;
   doPrint(`
     <div class="ph"><div><h2>INVENTORY COUNT SUMMARY</h2><div>GZI SA · Technical Stores · ${esc(periodLabel)}</div></div><div>${TODAY()}</div></div>
     <h3>Items counted per ${gl.toLowerCase()}</h3>
-    <table><thead><tr><th>${gl}</th><th>Total</th><th>Counted</th><th>Outstanding</th><th>% Counted</th><th>Accuracy %</th></tr></thead>
+    <table><thead><tr><th>${gl}</th><th>Total</th><th>Counted</th><th>Outstanding</th><th>% Remaining</th><th>% Counted</th><th>Accuracy %</th></tr></thead>
     <tbody>${list.map(([k,info])=>row(info.label,countStats(info.rows),false)).join("")}${row("All periods",countStats(DB.counts),false)}</tbody></table>
     <h3>Breakdown per machine — ${esc(periodLabel)}</h3>
-    <table><thead><tr><th>Machine</th><th>Total</th><th>Counted</th><th>Outstanding</th><th>% Counted</th><th>Accuracy %</th><th>Open var.</th></tr></thead>
+    <table><thead><tr><th>Machine</th><th>Total</th><th>Counted</th><th>Outstanding</th><th>% Remaining</th><th>% Counted</th><th>Accuracy %</th><th>Open var.</th></tr></thead>
     <tbody>${mk.map(m=>row(m,countStats(periodRows.filter(r=>(r.machine||"(unassigned)")===m)),true)).join("")}${row("All machines",countStats(periodRows),true)}</tbody></table>
     <p class="mini">A variance is excluded from "Counted" until it is flagged Resolved. Accuracy % = physical matched the system first time.</p>`);
 }
