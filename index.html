@@ -1343,7 +1343,7 @@ function renderCounts(app){
 
     <div class="toolbar no-print">
       <button class="btn" id="additem">＋ Add item</button>
-      <button class="btn sm" id="fillreg">Add items from register…</button>
+      <button class="btn sm" id="fillreg">Add items from register (2 counts each)…</button>
       <button class="btn sec sm" id="imp">Import CSV</button>
       <button class="btn sec sm" id="exp">Export CSV</button>
       <button class="btn ghost sm" id="prn">Print count sheet</button>
@@ -1403,7 +1403,7 @@ function renderCounts(app){
     app.querySelector("#cnt").textContent = `${rows.length} of ${DB.counts.length}`;
     const tw = app.querySelector("#tw");
     if(!DB.counts.length){
-      tw.innerHTML = `<div class="empty">No items yet.<br><br>Use <b>＋ Add item</b>, or <b>Add items from register…</b> to pull a machine's items in for counting.</div>`;
+      tw.innerHTML = `<div class="empty">No items yet.<br><br>Use <b>＋ Add item</b>, or <b>Add items from register (2 counts each)…</b> to pull a machine's items in for counting — twice, by two independent counters.</div>`;
       return;
     }
     if(!rows.length){ tw.innerHTML = `<div class="empty">No items match the filter.</div>`; return; }
@@ -1504,25 +1504,38 @@ function renderCounts(app){
   };
   app.querySelector("#fillreg").onclick = ()=>{
     if(!DB.inventory.length){ alert("The inventory register is empty."); return; }
-    const machine = prompt("Add a to-count row for every register item on which machine?\n\nType an exact machine name, or leave blank for ALL machines:\n\n"+machineNames().join(", "), countsUI.machine||"");
+    const machine = prompt("Add to-count rows for every register item on which machine?\n\nType an exact machine name, or leave blank for ALL machines:\n\n"+machineNames().join(", "), countsUI.machine||"");
     if(machine===null) return;
-    const counter = prompt("Counter name (optional):","") || "";
+    const counter1 = prompt("First counter (does the 1st, independent count):","") || "";
+    const counter2 = prompt("Second counter (does the 2nd, independent count):","") || "";
     const date = prompt("Count date (YYYY-MM-DD):", TODAY()) || TODAY();
     const wk=weekOf(date), mo=monthOf(date);
     let pool = DB.inventory.slice();
     if(machine.trim()) pool = pool.filter(i=>String(i.machine||"").toLowerCase()===machine.trim().toLowerCase());
     if(!pool.length){ alert("No register items"+(machine.trim()?` for “${machine.trim()}”`:"")+"."); return; }
-    const have = new Set(DB.counts.filter(r=>r.countDate===date).map(r=>String(r.sapCode||"").toUpperCase()));
-    let added=0;
+    const haveCount = {};
+    DB.counts.filter(r=>r.countDate===date).forEach(r=>{
+      const k=String(r.sapCode||"").toUpperCase(); haveCount[k]=(haveCount[k]||0)+1;
+    });
+    let added=0, alreadyDouble=0;
     pool.forEach(i=>{
-      if(have.has(String(i.sapCode||"").toUpperCase())) return;
-      DB.counts.push({id:uid(),countDate:date,week:wk,month:mo,
-        sapCode:i.sapCode,description:i.description||"",partNo:i.mpn||"",uom:i.uom||"",invType:i.group||"",
-        counter,machine:i.machine||"",counted:"",sapQty:i.qty,resolved:"",resolvedOn:"",resolutionRemarks:"",remarks:""});
-      added++;
+      const k=String(i.sapCode||"").toUpperCase();
+      const have=haveCount[k]||0;
+      if(have>=2){ alreadyDouble++; return; }
+      // rows still needed for this item — counter1 does the 1st count, counter2 the 2nd
+      const toAdd = [counter1,counter2].slice(have);
+      toAdd.forEach(counter=>{
+        DB.counts.push({id:uid(),countDate:date,week:wk,month:mo,
+          sapCode:i.sapCode,description:i.description||"",partNo:i.mpn||"",uom:i.uom||"",invType:i.group||"",
+          counter,machine:i.machine||"",counted:"",sapQty:i.qty,resolved:"",resolvedOn:"",resolutionRemarks:"",remarks:""});
+        added++;
+      });
     });
     save(); renderNav();
-    alert(added?`${added} item(s) added for ${machine.trim()||"all machines"} (${date}).`:`Nothing added — those items are already listed for ${date}.`);
+    const parts=[];
+    if(added) parts.push(`${added} count row(s) added`);
+    if(alreadyDouble) parts.push(`${alreadyDouble} item(s) already had 2 counts for ${date}`);
+    alert(parts.length ? parts.join("; ")+" — "+(machine.trim()||"all machines")+"." : `Nothing added — those items are already double-counted for ${date}.`);
     drawKPIs(); drawTable();
   };
   app.querySelector("#imp").onclick = ()=>importCSV("counts", ()=>renderCounts(app));
